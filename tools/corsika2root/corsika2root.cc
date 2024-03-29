@@ -1,3 +1,13 @@
+/* ================ CORSIKA2ROOT ================ *
+ * Created: 12-03-2024                            *
+ * Author:  Jordan McElwee                        *
+ *                                                *
+ * Take corsika information and convert it to     *
+ * ROOT data format.                              *
+ *                                                *
+ * Changelog:                                     * 
+ * ============================================== */
+
 #include <sys/stat.h>
 
 #include <crsRead/MCorsikaReader.h>
@@ -18,13 +28,61 @@
 
 #include "TNtupleD.h"
 
+
 void status(int evnt, int evntMax);
+void help();
 
 int main (int argc, char **argv) {
 
+
+  // === COMMAND LINE ========================================================
+
+  // ----- Required Arguments -----
+  int nReqArg = 1; // No. of required arg
+  std::string fname = argv[1]; 
+
+
+  // ----- Defaults -----
+  std::string outfile = "";
+  std::string outDir = "./";
+
+
+  // ----- Switches ----- 
+  bool bOutfile = false;
+
+
+  // ----- Read Command Line ----- 
+  int opt; 
+  optind = nReqArg + 1; 
+  while ((opt = getopt(argc, argv, ":ho:d:")) != -1)
+    {
+      switch (opt)
+	{
+	case 'h':
+	  help();
+	  return 0;
+	case 'o':
+	  bOutfile = true;
+	  outfile = optarg;
+	  break;
+	case 'd':
+	  outDir = optarg;
+	  break;
+	case ':':
+	  printf("\033[1;31m[ERROR]\033[0m -%c requires an argument.\n",optopt);
+	  return 0;
+	case '?':
+	  printf("\033[1;33m[ERROR]\033[0m -%c is an unknown argument... just ignoring it.\n",optopt);
+	  break;
+	}
+    }
+
+  // =========================================================================
+
+
+
   // === INPUT INFORMATION ===================================================
 
-  std::string fname (argv[1]);  
   // ----- Check if file exists -----
   {
     struct stat buffer;
@@ -60,18 +118,23 @@ int main (int argc, char **argv) {
 
     const int nRun = Run.GetRunID();
     const int nShowers = Run.GetNumberOfShowers();
-    std::cout << "\033[1m************ RUN INFO ************\033[0m\n"  
+    std::cout << "\n\033[1m************ RUN INFO ************\033[0m\n"  
 	      << "Run number: \t" << nRun << "\n"
 	      << "No. showers: \t" << nShowers << "\n"
 	      << "Primary slope: \t" << Run.GetSpectralSlope() << "\n"
 	      << "Energy range: \t[" << Run.GetEMin() << "," << Run.GetEMax() << "]\n"
-	      << "\033[1m**********************************\033[0m"<< std::endl;
+	      << "\033[1m**********************************\033[0m\n"<< std::endl;
+    
+    // Is outfile defined? 
+    if (!bOutfile) outfile = corsFile + ".root";
+    
+    TFile corsROOT((outDir + outfile).c_str(),"RECREATE");
 
-    std::string outfile = corsFile + ".root";  
-    TFile corsROOT(outfile.c_str(),"RECREATE");
     std::cout << "\033[34;1m[INFO]\033[0m Converting to ROOT file named:\n\t"
 	      << outfile << std::endl;
-    
+    std::cout << "\033[34;1m[INFO]\033[0m Saving output to directory:\n\t"
+	      << outDir << std::endl;
+
 
     // === CREATE TREES ======================================================
     
@@ -234,6 +297,25 @@ void status(int evnt, int evntMax)
             << "%" << std::flush;
   if (evnt == evntMax) std::cout << std::endl;
 
+}
+
+//********************************************************************
+
+
+//********************************************************************
+//***** FUNCTIONS ****************************************************
+
+void help()
+{
+  std::cout << "\n\033[1m************** CORSIKA2ROOT **************\033[0m\n\n";
+  std::cout << "\033[1mSyntax:\033[0m \n\t./corsika2root <file> <opts>\n\n";
+  std::cout << "\033[1mArgs:\033[0m \n";
+  std::cout << "\t<file> Corsika file to analyse (no extension).\n";
+  std::cout << "\t    -o ROOT output file name.\n";
+  std::cout << "\t    -d Output directory.\n";
+  std::cout << "\t    -h Return the help function.\n"; 
+  std::cout << "\n\033[1m******************************************\033[0m\n" 
+	    << std::endl;
 }
 
 //********************************************************************
