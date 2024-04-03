@@ -141,9 +141,10 @@ int main (int argc, char **argv) {
     // ----- Particle data -----
     TTree *corsTree = new TTree("particles", "Particles crossing the detector");
 
-    int pdg;
+    int pdg, parID;
     double w, eK, px, py, pz, x, y, t;
 
+    corsTree->Branch("parID", &parID, "parID/I");
     corsTree->Branch("pdg", &pdg, "pdg/I");
     corsTree->Branch("w", &w, "w/D");
     corsTree->Branch("eK", &eK, "eK/D");
@@ -220,6 +221,7 @@ int main (int argc, char **argv) {
 		crs::MParticle iPart(*iEntry);
 
 		// ----- Fill Particle Tree -----
+		parID = sID;
 		pdg = iPart.GetPDGCode();
 		w = iPart.GetWeight();
 		eK = iPart.GetKinEnergy();
