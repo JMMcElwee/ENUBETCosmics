@@ -1,0 +1,8 @@
+# Executables created by the software
+ecorsika
+corsika2root
+
+# Other unused files 
+*.o 
+*~
+*.root
