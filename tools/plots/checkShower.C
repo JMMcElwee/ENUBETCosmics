@@ -25,14 +25,14 @@ void checkShower(const char *corsikaFile){
   c1.SetTopMargin(0.04);
 
   // Shower energy profile 
-  TH1D *energyHist = new TH1D("energyHist",";Energy [GeV]; n_{hits}",100,0,200);
+  TH1D *energyHist = new TH1D("energyHist",";Energy [GeV]; n_{hits}",40,0,500);
   c1.SetLogy();
   shower->Draw("E>>energyHist");
   energyHist->SetLineColor(kBlue);
   c1.SaveAs("shower_sum.pdf(");
 
   // Shower energy profile scaled to energy
-  TH1D *energyScale = new TH1D("energyScale",";Energy [GeV]; n_{hits}*E^{2.7}",100,0,200);
+  TH1D *energyScale = new TH1D("energyScale",";Energy [GeV]; n_{hits}*E^{2.7}",40,0,500);
   c1.SetLogy(0);
   shower->Draw("E>>energyScale", "pow(E,2.7)");
   energyScale->SetLineColor(kRed);
@@ -40,7 +40,7 @@ void checkShower(const char *corsikaFile){
 
   // Shower angular profile
   c1.SetLeftMargin(0.12);
-  TH1D *thetaHist = new TH1D("thetaHist",";#theta [rad];n_{hits}", 100, 0, 1.35);
+  TH1D *thetaHist = new TH1D("thetaHist",";#theta [rad];n_{hits}", 100, 0, 1.25);
   shower->Draw("theta>>thetaHist");
   thetaHist->SetLineColor(kBlue);
   c1.SaveAs("shower_sum.pdf");

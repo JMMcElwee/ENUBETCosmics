@@ -21,9 +21,7 @@ DBReader::DBReader()
 // ---------------------------
 
 // --- ROOT Constructor ------
-DBReader::DBReader(char dbfile[]) : m_dbfile(dbfile, "READ"),
-				    m_showerTree(nullptr),
-				    m_particleTree(nullptr)
+DBReader::DBReader(const char *dbfile) : m_dbfile(dbfile, "READ")
 {
   m_dbfile.GetObject("shower", m_showerTree);
   m_dbfile.GetObject("particles", m_particleTree);
@@ -33,7 +31,7 @@ DBReader::DBReader(char dbfile[]) : m_dbfile(dbfile, "READ"),
   m_showerTree->SetBranchAddress("theta", &m_sTheta);
   m_showerTree->SetBranchAddress("phi", &m_sPhi);
 
-  //  m_particleTree->SetBranchAddress("id",&m_pId);
+  m_particleTree->SetBranchAddress("parID",&m_pId);
   m_particleTree->SetBranchAddress("pdg",&m_pPDG);
   m_particleTree->SetBranchAddress("eK",&m_pEk);
   m_particleTree->SetBranchAddress("px",&m_pPx);
@@ -48,10 +46,41 @@ DBReader::DBReader(char dbfile[]) : m_dbfile(dbfile, "READ"),
 
 // --- Destructor ------------
 DBReader::~DBReader()
-{}
+{
+  m_dbfile.Close();
+}
 // ---------------------------
 
 // ********************************************************************
+
+
+
+// ********************************************************************
+// ***** ROOT FUNCTIONS ***********************************************
+
+// ---------------------------
+void DBReader::GetShower(int evnt)
+{ m_showerTree->GetEntry(evnt); }
+// ---------------------------
+
+// ---------------------------
+void DBReader::GetEvent(int evnt)
+{ m_particleTree->GetEntry(evnt); }
+// ---------------------------
+
+// ---------------------------
+int DBReader::GetNShowers()
+{ return m_showerTree->GetEntries(); }
+// ---------------------------
+
+// ---------------------------
+int DBReader::GetNEvents()
+{ return m_particleTree->GetEntries(); }
+// ---------------------------
+
+// ********************************************************************
+
+
 
 
 // ********************************************************************
@@ -79,8 +108,8 @@ double DBReader::SPhi()
 
 
 // ---------------------------
-//int DBReader::PID()
-//{ return m_pId; }
+int DBReader::ParID()
+{ return m_pId; }
 // ---------------------------
 
 // ---------------------------

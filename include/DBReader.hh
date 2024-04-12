@@ -26,8 +26,8 @@ protected:
   // ----- MEMBER VARIABLES -----
   // File info.
   TFile m_dbfile {};
-  TTree *m_showerTree {};
-  TTree *m_particleTree {};
+  TTree *m_showerTree {nullptr};
+  TTree *m_particleTree {nullptr};
 
   // Shower variables
   int m_sId {};
@@ -37,7 +37,7 @@ protected:
 
   // Particle variables
   int m_pId {};
-  double m_pPDG {};
+  int m_pPDG {};
   double m_pEk {};
   double m_pPx {};
   double m_pPy {};
@@ -52,7 +52,7 @@ public:
 
   // --- Constructors ---
   DBReader();
-  DBReader(char dbfile[]);
+  DBReader(const char *dbfile);
   ~DBReader();
 
   // --- Access Functions ---
@@ -61,6 +61,7 @@ public:
   double STheta();
   double SPhi();
 
+  int ParID();
   int PDG();
   double EK();
   double PX();
@@ -70,6 +71,12 @@ public:
   double Y();
   double T();
 
+  // --- ROOT Functions ---
+  void GetShower(int evnt);
+  void GetEvent(int evnt);
+
+  int GetNShowers();
+  int GetNEvents();
 
 };
 
