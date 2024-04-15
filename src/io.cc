@@ -4,6 +4,7 @@
 //********************************************************************
 //***** FUNCTIONS ****************************************************
 
+// ----- Help Function -----
 void help()
 {
   std::cout << "\n\033[1m************** CORSIKA2ROOT **************\033[0m\n\n";
@@ -16,6 +17,36 @@ void help()
   std::cout << "\n\033[1m******************************************\033[0m\n"
             << std::endl;
 }
+// -------------------------
+
+// ----- File Exists -------
+bool is_alive(const std::string &file)
+{
+  struct stat buffer;
+  return (stat (file.c_str(), &buffer) == 0);
+}
+// -------------------------
+
+// ----- Range correct -----
+bool range_valid(double lowVal, double highVal, const char *varName)
+{
+  bool isValid = true;
+  
+  if (lowVal > highVal) {
+
+    std::cout << "\033[33;1m[WARNING]\033[0m " << varName
+	      << " range supplied [" << lowVal << ","
+	      << highVal << "] is invalid.\n";
+
+    std::cout << "          Swapping range to: [" << highVal
+              << "," << lowVal << "]" << std::endl;
+    
+    isValid = false;
+  } // Actually have to swap outside the code... not elegant
+
+  return isValid;
+}
+// -------------------------
 
 //********************************************************************
 

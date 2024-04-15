@@ -26,39 +26,9 @@
 
 #include "io.hh"
 #include "DBReader.hh"
+#include "cosmics.hh"
 
 int main (int argc, char *argv[]) {
-
-
-  // === CALCULATE SHOWERS ==========================================
-
-  // Surface area of detector
-  double detXDim[2] = {-4.,4}; // m
-  double detYDim[2] = {-4.,4}; // m
-
-  double detSA = (detXDim[1] - detXDim[0]) * (detYDim[1] - detYDim[0]);
-
-
-  // Spill window of the period
-  double t = 2.0; // secs
-
-  
-  // Constant of the integral
-  double k = 1.8E4;
-
-
-  // Energy range;
-  double E[2] = {50, 10000000};
-
-
-  // Number of showers to generate
-  int nShowers = round(-2 * 3.14 * detSA * t * k * (pow(E[1],-1.7) - pow(E[0],-1.7))/1.7);
-  //  nShowers = 1000000;
-  
-  //  std::cout << "Detector Dimensions are: " << detSA << std::endl;
-  std::cout << "Total number of showers to generate: " << nShowers << std::endl;
-  
-  // ================================================================
 
 
  
@@ -70,18 +40,44 @@ int main (int argc, char *argv[]) {
 
   
   // ----- Optional Defaults -----
-
+  Detector pdMuon;
+  pdMuon.x[0] = -4.;
+  pdMuon.x[1] = 4.;
+  pdMuon.y[0] = -4.;
+  pdMuon.y[1] = 4.;
+  pdMuon.t = 2.;
+  pdMuon.E[0] = 50;
+  pdMuon.E[1] = 100000;
   
   // ----- Read Command Line -----
   int opt;
   optind = nReqArg + 1;
-  while ((opt = getopt(argc, argv, ":vh")) != -1)
+  while ((opt = getopt(argc, argv, ":vhE:x:y:t:")) != -1)
     {
+      std::string tempStr;
       switch (opt)
 	{
 	case 'h':
 	  help();
 	  return 0;
+	case 'E':
+	  tempStr = optarg;
+	  pdMuon.E[0] = std::stod(tempStr.substr(0,tempStr.find(",")));
+	  pdMuon.E[1] = std::stod(tempStr.substr(tempStr.find(",")+1,tempStr.size()-1));
+	  break;
+	case 'x':
+	  tempStr = optarg;
+	  pdMuon.x[0] = std::stod(tempStr.substr(0,tempStr.find(",")));
+	  pdMuon.x[1] = std::stod(tempStr.substr(tempStr.find(",")+1,tempStr.size()-1));
+	  break;
+	case 'y':
+	  tempStr = optarg;
+	  pdMuon.y[0] = std::stod(tempStr.substr(0,tempStr.find(",")));
+	  pdMuon.y[1] = std::stod(tempStr.substr(tempStr.find(",")+1,tempStr.size()-1));
+	  break;
+	case 't':
+	  pdMuon.t = std::stod(optarg);
+	  break;
 	case 'v':
 	  //	  verbose = true;
 	  break;
@@ -92,33 +88,72 @@ int main (int argc, char *argv[]) {
 	  printf("\033[1;33m[ERROR]\033[0m -%c is an unknown argument... just ignoring it.\n",optopt);
 	  break;
 	}
+      tempStr.clear(); // To be safe
     }
+
+
+  // ----- File exists -----
+  if (!is_alive(infile)) {
+    std::cout << "\033[31;1m[ERROR]\033[0m File \'" << infile << "\' does not exist." << std::endl;
+    return 0;
+  }
+
+  is_alive(infile);
+
+  // ----- Energy range -----
+  if (!range_valid(pdMuon.E[0], pdMuon.E[1], "Energy")){
+    double tempConst;
+    tempConst = pdMuon.E[0];
+    pdMuon.E[0] = pdMuon.E[1];
+    pdMuon.E[1] = tempConst;
+  }
+
+  // ----- X Coords -----
+  if (!range_valid(pdMuon.x[0], pdMuon.x[1], "x")){
+    double tempConst;
+    tempConst = pdMuon.x[0];
+    pdMuon.x[0] = pdMuon.x[1];
+    pdMuon.x[1] = tempConst;
+  }
+  
+  // ----- Y Coords -----
+   if (!range_valid(pdMuon.y[0], pdMuon.y[1], "y")){
+    double tempConst;
+    tempConst = pdMuon.y[0];
+    pdMuon.y[0] = pdMuon.y[1];
+    pdMuon.y[1] = tempConst;
+  }
   
   // ================================================================
 
-
+   
+  
   // === DATABASE ===================================================
 
+  // Number of showers to generate
+  int nprimaries = nshowers(&pdMuon, 1.8E4);
+
+  
   DBReader *corsDB = new DBReader(infile.c_str());
   
   // Choose a random selection of showers from the database
-  std::vector<int> showers_gen;
-  showers_gen.reserve(nShowers+1); // Reserve mem. to avoid reallocation
+  std::vector<int> primary_gen;
+  primary_gen.reserve(nprimaries+1); // Reserve mem. to avoid reallocation
   
   int rnd_shower;
   double shower_energy;
-  for (int evnt = 1; evnt <= nShowers; evnt++)
+  for (int evnt = 1; evnt <= nprimaries; evnt++)
     {
-      if ( (evnt % (nShowers/100) == 0) || (evnt == nShowers) )
-	status(evnt, nShowers);
+      if ( (evnt % (nprimaries/100) == 0) || (evnt == nprimaries) )
+	status(evnt, nprimaries);
       
       rnd_shower = gRandom->Integer(corsDB->GetNShowers());
       corsDB->GetShower(rnd_shower);
       shower_energy = corsDB->SE();
       
-      if ((std::find(showers_gen.begin(),showers_gen.end(),rnd_shower)
-	   == showers_gen.end()) && shower_energy < E[1] && shower_energy > E[0])
-	showers_gen.push_back(rnd_shower);
+      if ((std::find(primary_gen.begin(),primary_gen.end(),rnd_shower)
+	   == primary_gen.end()) && shower_energy < pdMuon.E[1] && shower_energy > pdMuon.E[0])
+	primary_gen.push_back(rnd_shower);
       else evnt--;
     }
   
@@ -165,11 +200,11 @@ int main (int argc, char *argv[]) {
 
   // Sort the vector lowest to highest in order to speed up searching (we can skip many
   // of the early events this way...
-  sort(showers_gen.begin(), showers_gen.end());
+  sort(primary_gen.begin(), primary_gen.end());
   int current_shower, newShowerID = 0; 
   
   
-  for (int shower : showers_gen) {
+  for (int shower : primary_gen) {
     corsDB->GetShower(shower);
 
     sID = newShowerID;
@@ -177,10 +212,10 @@ int main (int argc, char *argv[]) {
     sTheta = corsDB->STheta();
     sPhi = corsDB->SPhi();
     
-    sVtx[0] = gRandom->Uniform(detXDim[0], detXDim[1]);
-    sVtx[1] = gRandom->Uniform(detYDim[0], detYDim[1]);
+    sVtx[0] = gRandom->Uniform(pdMuon.x[0], pdMuon.x[1]);
+    sVtx[1] = gRandom->Uniform(pdMuon.y[0], pdMuon.y[1]);
 
-    sT = gRandom->Uniform(0, t);
+    sT = gRandom->Uniform(0, pdMuon.t);
     
     showerTree->Fill();
    
