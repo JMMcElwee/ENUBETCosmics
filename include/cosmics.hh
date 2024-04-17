@@ -16,6 +16,6 @@ struct Detector {
 
 };
 
-int nshowers(Detector *obs, double kp);
+int nshowers(Detector *obs, double kp, int primOverride);
 
 #endif

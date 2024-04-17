@@ -4,7 +4,7 @@
 //********************************************************************
 //***** NPARTICLES ***************************************************
 
-int nshowers(Detector *obs, double kp){
+int nshowers(Detector *obs, double kp, int primOverride){
 
   double SA = (obs->x[1] - obs->x[0]) * (obs->y[1] - obs->y[0]);
   obs->SA = SA; 
@@ -21,12 +21,15 @@ int nshowers(Detector *obs, double kp){
 
   double nshowers = round(2 * M_PI * obs->SA * obs->t * kp * 
 			  (pow(obs->E[0],-1.7) - pow(obs->E[1],-1.7))/1.7);
-  
+
+  if (primOverride != -1){
+    std::cout << "\033[1;34m[INFO]\033[0m Overwriting primary cosmic calculation."
+	      << " Throwing " << primOverride << " instead." << std::endl;
+    return primOverride; 
+  }
   
   std::cout << "\033[34;1m[INFO]\033[0m Generating " << nshowers
 	    << " primary cosmics." << std::endl;
-  
-  
   return nshowers;
   
 }

@@ -28,6 +28,8 @@
 #include "DBReader.hh"
 #include "cosmics.hh"
 
+#include "distribute.hh"
+
 int main (int argc, char *argv[]) {
 
 
@@ -48,11 +50,15 @@ int main (int argc, char *argv[]) {
   pdMuon.t = 2.;
   pdMuon.E[0] = 50;
   pdMuon.E[1] = 100000;
+
+  int nprimaries = -1;
+
+  std::string outfile = "enubet_cosmics.root";
   
   // ----- Read Command Line -----
   int opt;
   optind = nReqArg + 1;
-  while ((opt = getopt(argc, argv, ":vhE:x:y:t:")) != -1)
+  while ((opt = getopt(argc, argv, ":vhE:x:y:t:n:o:")) != -1)
     {
       std::string tempStr;
       switch (opt)
@@ -78,6 +84,12 @@ int main (int argc, char *argv[]) {
 	case 't':
 	  pdMuon.t = std::stod(optarg);
 	  break;
+	case 'n':
+	  nprimaries = std::stoi(optarg);
+	  break;
+	case 'o':
+	  outfile = optarg;
+	  break;
 	case 'v':
 	  //	  verbose = true;
 	  break;
@@ -98,8 +110,6 @@ int main (int argc, char *argv[]) {
     return 0;
   }
 
-  is_alive(infile);
-
   // ----- Energy range -----
   if (!range_valid(pdMuon.E[0], pdMuon.E[1], "Energy")){
     double tempConst;
@@ -117,7 +127,7 @@ int main (int argc, char *argv[]) {
   }
   
   // ----- Y Coords -----
-   if (!range_valid(pdMuon.y[0], pdMuon.y[1], "y")){
+  if (!range_valid(pdMuon.y[0], pdMuon.y[1], "y")){
     double tempConst;
     tempConst = pdMuon.y[0];
     pdMuon.y[0] = pdMuon.y[1];
@@ -131,15 +141,17 @@ int main (int argc, char *argv[]) {
   // === DATABASE ===================================================
 
   // Number of showers to generate
-  int nprimaries = nshowers(&pdMuon, 1.8E4);
-
+  nprimaries = nshowers(&pdMuon, 1.8E4, nprimaries);
   
   DBReader *corsDB = new DBReader(infile.c_str());
   
   // Choose a random selection of showers from the database
   std::vector<int> primary_gen;
   primary_gen.reserve(nprimaries+1); // Reserve mem. to avoid reallocation
-  
+
+
+  std::cout << "\033[1;34m[INFO]\033[0m Creating database from file:\n\t"
+	    << infile << std::endl;
   int rnd_shower;
   double shower_energy;
   for (int evnt = 1; evnt <= nprimaries; evnt++)
@@ -162,8 +174,11 @@ int main (int argc, char *argv[]) {
 
 
   // === EVENT LOOPS ================================================ 
+  
+  TFile corsOUT(outfile.c_str(), "RECREATE");
 
-  TFile corsOUT("test.root", "RECREATE");
+  std::cout << "\033[1;34m[INFO]\033[0m Saving ENUBET cosmics to output file:\n\t"
+	    << outfile << std::endl;
   
   // ----- Shower information -----
   TTree *showerTree = new TTree("shower", "Shower information");
@@ -181,16 +196,18 @@ int main (int argc, char *argv[]) {
 
   // ----- Particle data -----
   TTree *particleTree = new TTree("particles", "Particles crossing the detector");
+
+  Particle parts;
   
-  int pPDG, pParID;
-  double pEK, pP[3], pVtx[2], pT;
+  //  int pPDG, pParID;
+  //  double pEK, pP[3], pVtx[2], pT;
   
-  particleTree->Branch("parID", &pParID, "parID/I");
-  particleTree->Branch("pdg", &pPDG, "pdg/I");
-  particleTree->Branch("eK", &pEK, "eK/D");
-  particleTree->Branch("mom[3]", pP, "mom[3]/D");
-  particleTree->Branch("vtx[2]", pVtx, "vtx[2]/D");
-  particleTree->Branch("t", &pT, "t/D");
+  particleTree->Branch("parID", &parts.ParID, "parID/I");
+  particleTree->Branch("pdg", &parts.PDG, "pdg/I");
+  particleTree->Branch("eK", &parts.ek, "eK/D");
+  particleTree->Branch("mom[3]", parts.mom, "mom[3]/D");
+  particleTree->Branch("vtx[2]", parts.vtx, "vtx[2]/D");
+  particleTree->Branch("t", &parts.t, "t/D");
 
   
 
@@ -218,35 +235,76 @@ int main (int argc, char *argv[]) {
     sT = gRandom->Uniform(0, pdMuon.t);
     
     showerTree->Fill();
-   
+
+    // I think the easiest way is to put a particle counter here, and then loop
+    // over this afterwards. It's not efficient, but it's the only way to do it
+    // with ROOT.
+
+    std::vector<Particle> partList;
     
     for (int evnt = last_position; evnt < corsDB->GetNEvents(); evnt++){
       corsDB->GetEvent(evnt);
       current_shower = corsDB->ParID();
-
+      parts.shift[0] = 0;
+      parts.shift[1] = 0;
+      
       if (current_shower == shower) {
 
-	pParID = newShowerID;
-	pPDG = corsDB->PDG();
-	pEK = corsDB->EK();
-	pP[0] = corsDB->PX();
-	pP[1] = corsDB->PY();
-	pP[2] = corsDB->PZ();
-	pVtx[0] = corsDB->X()/100 + sVtx[0];
-	pVtx[1] = corsDB->Y()/100 + sVtx[1];
-	pT = corsDB->T()/1E9 + sT;
+	// Grab event information and store it per shower 
+	parts.ParID = newShowerID;
+	parts.PDG = corsDB->PDG();
+	parts.ek = corsDB->EK();
+	parts.mom[0] = corsDB->PX();
+	parts.mom[1] = corsDB->PY();
+	parts.mom[2] = corsDB->PZ();
+	parts.vtx[0] = corsDB->X()/100 + sVtx[0];
+	parts.vtx[1] = corsDB->Y()/100 + sVtx[1];
 
-	particleTree->Fill();
+	while (parts.vtx[0] < pdMuon.x[0]) {
+	  parts.vtx[0] += pdMuon.x[1] - pdMuon.x[0];
+	  parts.shift[0]++;
+	}
+	while (parts.vtx[0] > pdMuon.x[1]) {
+	  parts.vtx[0] -= pdMuon.x[1] - pdMuon.x[0];
+	  parts.shift[0]--;
+	}
+	while (parts.vtx[1] < pdMuon.y[0]) {
+	  parts.vtx[1] += pdMuon.y[1] - pdMuon.y[0];
+	  parts.shift[1]++;
+	}
+	while (parts.vtx[1] > pdMuon.y[1]) {
+	  parts.vtx[1] -= pdMuon.y[1] - pdMuon.y[0];
+	  parts.shift[1]--;
+	}
+
+	parts.t = corsDB->T()/1E9 + sT;
+
+	partList.push_back(parts);
        
 	
       }
       else if (current_shower > shower) {
+
+	for (Particle hit : partList){
+
+	  parts.ParID = hit.ParID;
+	  parts.PDG = hit.PDG;
+	  parts.ek = hit.ek;
+	  parts.mom[0] = hit.mom[0];
+	  parts.mom[1] = hit.mom[1];
+	  parts.mom[2] = hit.mom[2];
+	  parts.vtx[0] = hit.vtx[0];
+	  parts.vtx[1] = hit.vtx[1];
+	  parts.t = hit.t;
+	  particleTree->Fill();  
+	}
+	
 	last_position = evnt;
 	break;
       }
       
     }
-
+    
     newShowerID++;
     
   }
