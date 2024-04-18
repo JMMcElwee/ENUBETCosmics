@@ -1,3 +1,15 @@
+/* ==================== IO ====================== *
+ * Created: 30-03-2024                            *
+ * Author:  Jordan McElwee                        *
+ * Email: mcelwee@lp2ib.in2p3.fr                  *
+ *                                                *
+ * Input/output functions that are useful for     *
+ * controlling and testing the data. Anything     *
+ * specific should be kept elsewhere!             *
+ *                                                *
+ * Changelog:                                     *
+ * ============================================== */
+
 #include "io.hh"
 
 
@@ -7,14 +19,21 @@
 // ----- Help Function -----
 void help()
 {
-  std::cout << "\n\033[1m************** CORSIKA2ROOT **************\033[0m\n\n";
-  std::cout << "\033[1mSyntax:\033[0m \n\t./corsika2root <file> <opts>\n\n";
-  std::cout << "\033[1mArgs:\033[0m \n";
-  std::cout << "\t<file> Corsika file to analyse (no extension).\n";
-  std::cout << "\t    -o ROOT output file name.\n";
-  std::cout << "\t    -d Output directory.\n";
-  std::cout << "\t    -h Return the help function.\n";
-  std::cout << "\n\033[1m******************************************\033[0m\n"
+  std::cout << "\n\033[1m**************** ECORSIKA ****************\033[0m\n\n"
+	    << "\033[1mSyntax:\033[0m \n\t./corsika2root <file> <opts>\n\n"
+	    << "\033[1mArgs:\033[0m \n"
+	    << "<file> Database file for analysis.\n"
+	    << "\n--- Data steering\n"
+	    << "    -E Energy range \t\t<min>,<max>\n"
+    	    << "    -x Detector x coords \t<min>,<max>\n"
+	    << "    -y Detector y coords \t<min>,<max>\n"
+	    << "    -t Cosmic spill time \t<t>\n"
+	    << "    -n Override n cosmics calc \t<n>\n"
+	    << "\n--- I/O\n"
+	    << "    -o ROOT output file name \t<name>\n"
+	    << "    -d Output directory \t<pathtodir> \n"
+	    << "    -h Help function \n"
+	    << "\n\033[1m******************************************\033[0m\n"
             << std::endl;
 }
 // -------------------------
@@ -28,10 +47,12 @@ bool is_alive(const std::string &file)
 // -------------------------
 
 // ----- Range correct -----
-bool range_valid(double lowVal, double highVal, const char *varName)
+bool range_valid(double lowVal, double highVal, const char *name)
 {
+  // Assume range is valid
   bool isValid = true;
-  
+
+  // If it's not, inform of the swap!
   if (lowVal > highVal) {
 
     std::cout << "\033[33;1m[WARNING]\033[0m " << varName
@@ -40,7 +61,7 @@ bool range_valid(double lowVal, double highVal, const char *varName)
 
     std::cout << "          Swapping range to: [" << highVal
               << "," << lowVal << "]" << std::endl;
-    
+
     isValid = false;
   } // Actually have to swap outside the code... not elegant
 
@@ -75,8 +96,12 @@ void status(int evnt, int evntMax)
       std::cout << "\033[0m\033[31m-";
     }
   }
+
+  // Display percentage at the end of the bar
   std::cout << "\033[32;1m] " << std::setw(3) << "\033[0m" << percent
             << "%" << std::flush;
+  
+  // Include this to make sure it reaches 100%
   if (evnt == evntMax) std::cout << std::endl;
 
 }

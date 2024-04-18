@@ -1,4 +1,4 @@
-/* ================ CORSIKA2ROOT ================ *
+/* ================= ECORSIKA =================== *
  * Created: 30-03-2024                            *
  * Author:  Jordan McElwee                        *
  * Email: mcelwee@lp2ib.in2p3.fr                  *
@@ -241,12 +241,12 @@ int main (int argc, char *argv[]) {
     // with ROOT.
 
     std::vector<Particle> partList;
+
     
     for (int evnt = last_position; evnt < corsDB->GetNEvents(); evnt++){
       corsDB->GetEvent(evnt);
       current_shower = corsDB->ParID();
-      parts.shift[0] = 0;
-      parts.shift[1] = 0;
+      int xshift = 0, yshift = 0;
       
       if (current_shower == shower) {
 
@@ -262,25 +262,24 @@ int main (int argc, char *argv[]) {
 
 	while (parts.vtx[0] < pdMuon.x[0]) {
 	  parts.vtx[0] += pdMuon.x[1] - pdMuon.x[0];
-	  parts.shift[0]++;
+	  xshift++;
 	}
 	while (parts.vtx[0] > pdMuon.x[1]) {
 	  parts.vtx[0] -= pdMuon.x[1] - pdMuon.x[0];
-	  parts.shift[0]--;
+	  xshift--;
 	}
 	while (parts.vtx[1] < pdMuon.y[0]) {
 	  parts.vtx[1] += pdMuon.y[1] - pdMuon.y[0];
-	  parts.shift[1]++;
+	  yshift++;
 	}
 	while (parts.vtx[1] > pdMuon.y[1]) {
 	  parts.vtx[1] -= pdMuon.y[1] - pdMuon.y[0];
-	  parts.shift[1]--;
+	  yshift--;
 	}
 
 	parts.t = corsDB->T()/1E9 + sT;
 
 	partList.push_back(parts);
-       
 	
       }
       else if (current_shower > shower) {
@@ -297,7 +296,9 @@ int main (int argc, char *argv[]) {
 	  parts.vtx[1] = hit.vtx[1];
 	  parts.t = hit.t;
 	  particleTree->Fill();  
+
 	}
+	
 	
 	last_position = evnt;
 	break;

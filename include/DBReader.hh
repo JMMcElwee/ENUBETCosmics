@@ -12,11 +12,17 @@
 #ifndef DBREADER_HH
 #define DBREADER_HH
 
-
 #include "TFile.h"
 #include "TTree.h"
 
 
+/*
+  Class to read the data from the ROOT
+  database. If we include a reader for
+  the CORSIKA files too, this will need
+  to be reworked.. but it will likely
+  be faster than the ROOT reader. 
+*/
 
 class DBReader
 {
@@ -45,7 +51,6 @@ protected:
   double m_pX {};
   double m_pY {};
   double m_pT {};
-  
   
 
 public:
