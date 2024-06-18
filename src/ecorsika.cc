@@ -16,6 +16,8 @@
 #include <algorithm>
 #include <vector>
 
+#include <map>
+
 #include "TFile.h"
 #include "TTree.h"
 #include "TRandom.h"
@@ -51,7 +53,7 @@ int main (int argc, char *argv[]) {
   pdMuon.E[0] = 50;
   pdMuon.E[1] = 100000;
 
-  int nprimaries = -1;
+  int primOverride = -1;
 
   std::string outfile = "enubet_cosmics.root";
   
@@ -85,7 +87,7 @@ int main (int argc, char *argv[]) {
 	  pdMuon.t = std::stod(optarg);
 	  break;
 	case 'n':
-	  nprimaries = std::stoi(optarg);
+	  primOverride = std::stoi(optarg);
 	  break;
 	case 'o':
 	  outfile = optarg;
@@ -136,38 +138,15 @@ int main (int argc, char *argv[]) {
   
   // ================================================================
 
-   
+
   
   // === DATABASE ===================================================
 
-  // Number of showers to generate
-  nprimaries = nshowers(&pdMuon, 1.8E4, nprimaries);
   
   DBReader *corsDB = new DBReader(infile.c_str());
   
-  // Choose a random selection of showers from the database
-  std::vector<int> primary_gen;
-  primary_gen.reserve(nprimaries+1); // Reserve mem. to avoid reallocation
-
-
-  std::cout << "\033[1;34m[INFO]\033[0m Creating database from file:\n\t"
-	    << infile << std::endl;
-  int rnd_shower;
-  double shower_energy;
-  for (int evnt = 1; evnt <= nprimaries; evnt++)
-    {
-      if ( (evnt % (nprimaries/100) == 0) || (evnt == nprimaries) )
-	status(evnt, nprimaries);
-      
-      rnd_shower = gRandom->Integer(corsDB->GetNShowers());
-      corsDB->GetShower(rnd_shower);
-      shower_energy = corsDB->SE();
-      
-      if ((std::find(primary_gen.begin(),primary_gen.end(),rnd_shower)
-	   == primary_gen.end()) && shower_energy < pdMuon.E[1] && shower_energy > pdMuon.E[0])
-	primary_gen.push_back(rnd_shower);
-      else evnt--;
-    }
+  std::vector<int> primary_gen = retrieve_primaries(corsDB, &pdMuon, primOverride);
+  
   
   // ================================================================ 
 
@@ -199,9 +178,6 @@ int main (int argc, char *argv[]) {
 
   Particle parts;
   
-  //  int pPDG, pParID;
-  //  double pEK, pP[3], pVtx[2], pT;
-  
   particleTree->Branch("parID", &parts.ParID, "parID/I");
   particleTree->Branch("pdg", &parts.PDG, "pdg/I");
   particleTree->Branch("eK", &parts.ek, "eK/D");
@@ -210,11 +186,9 @@ int main (int argc, char *argv[]) {
   particleTree->Branch("t", &parts.t, "t/D");
 
   
-
-  
   // Use this variable to speed up searching for particles
   int last_position = 0;
-
+  
   // Sort the vector lowest to highest in order to speed up searching (we can skip many
   // of the early events this way...
   sort(primary_gen.begin(), primary_gen.end());
@@ -223,7 +197,7 @@ int main (int argc, char *argv[]) {
   
   for (int shower : primary_gen) {
     corsDB->GetShower(shower);
-
+    
     sID = newShowerID;
     sE = corsDB->SE();
     sTheta = corsDB->STheta();
@@ -236,22 +210,27 @@ int main (int argc, char *argv[]) {
     
     showerTree->Fill();
 
-    // I think the easiest way is to put a particle counter here, and then loop
-    // over this afterwards. It's not efficient, but it's the only way to do it
-    // with ROOT.
-
-    std::vector<Particle> partList;
-
-    
+    std::map<std::vector<int>,double> showerTiming;
+    std::map<std::vector<int>,int> showerIDMap; 
+    /*
+      First we search for the number of particles per shower, filling
+      the map with their relative positions and the new time of the
+      translated shower.
+      We can then use the information on the position of the particles
+      in the ROOT tree to speed up the future loops!
+    */
     for (int evnt = last_position; evnt < corsDB->GetNEvents(); evnt++){
       corsDB->GetEvent(evnt);
       current_shower = corsDB->ParID();
-      int xshift = 0, yshift = 0;
       
       if (current_shower == shower) {
 
+	// No shift means it's the shower timing
+	std::vector<int> shift = {0,0};
+	showerTiming.insert( {shift, sT} );
+	showerIDMap.insert( {shift, newShowerID} );
+	
 	// Grab event information and store it per shower 
-	parts.ParID = newShowerID;
 	parts.PDG = corsDB->PDG();
 	parts.ek = corsDB->EK();
 	parts.mom[0] = corsDB->PX();
@@ -260,52 +239,49 @@ int main (int argc, char *argv[]) {
 	parts.vtx[0] = corsDB->X()/100 + sVtx[0];
 	parts.vtx[1] = corsDB->Y()/100 + sVtx[1];
 
+	// Check the events are within the right region
 	while (parts.vtx[0] < pdMuon.x[0]) {
 	  parts.vtx[0] += pdMuon.x[1] - pdMuon.x[0];
-	  xshift++;
+	  shift.at(0) = shift.at(0) + 1;
 	}
 	while (parts.vtx[0] > pdMuon.x[1]) {
 	  parts.vtx[0] -= pdMuon.x[1] - pdMuon.x[0];
-	  xshift--;
+	  shift.at(0) = shift.at(0) - 1;
 	}
 	while (parts.vtx[1] < pdMuon.y[0]) {
 	  parts.vtx[1] += pdMuon.y[1] - pdMuon.y[0];
-	  yshift++;
+	  shift.at(1)++;
 	}
 	while (parts.vtx[1] > pdMuon.y[1]) {
 	  parts.vtx[1] -= pdMuon.y[1] - pdMuon.y[0];
-	  yshift--;
+	  shift.at(1)--;
 	}
 
-	parts.t = corsDB->T()/1E9 + sT;
+	/*
+	  If shift value isn't 0, and it's NOT in the map,
+	  throw a random time for this position and add it
+	  to the map.
+	*/
+       	if ( ( abs(shift.at(0)) > 0 || abs(shift.at(1)) > 0 )
+	    && !showerTiming.count(shift)) {
+	  double newTime = gRandom->Uniform(0, pdMuon.t);
+	  showerTiming.insert( {shift, newTime} );
+	  newShowerID++;
+	  showerIDMap.insert( {shift, newShowerID} );
+	}
 
-	partList.push_back(parts);
+	parts.t = corsDB->T()/1E9 + showerTiming.at(shift);
+	parts.ParID = showerIDMap.at(shift);
+
+	particleTree->Fill();
 	
       }
       else if (current_shower > shower) {
-
-	for (Particle hit : partList){
-
-	  parts.ParID = hit.ParID;
-	  parts.PDG = hit.PDG;
-	  parts.ek = hit.ek;
-	  parts.mom[0] = hit.mom[0];
-	  parts.mom[1] = hit.mom[1];
-	  parts.mom[2] = hit.mom[2];
-	  parts.vtx[0] = hit.vtx[0];
-	  parts.vtx[1] = hit.vtx[1];
-	  parts.t = hit.t;
-	  particleTree->Fill();  
-
-	}
-	
-	
 	last_position = evnt;
 	break;
       }
       
     }
-    
     newShowerID++;
     
   }

@@ -14,6 +14,8 @@
 //********************************************************************
 //***** NPARTICLES ***************************************************
 
+
+// ------------------------------
 /* 
    Takes in the detector information and uses the shower calculation
    to calculate the number of showers that would be needed for such a
@@ -55,5 +57,46 @@ int nshowers(Detector *obs, double kp, int primOverride){
   return nshowers;
   
 }
+// ------------------------------
+
+
+// ------------------------------
+/*
+  Retrieve a list of the particles to be thrown from the database
+  file. The number of primaries is only calculated within this
+  function, and can only be accessed by the main function by
+  recalculating it. 
+*/
+std::vector<int> retrieve_primaries(DBReader *corsDB, Detector *dMuon, int primOverride)
+{
+
+  int nprimaries = nshowers(dMuon, 1.8E4, primOverride);
+  
+  std::vector<int> primary_gen;
+  primary_gen.reserve(nprimaries+1);
+
+  // Need to include the name of the file in the database reader.
+  //  std::cout << "\033[1;34m[INFO]\033[0m Creating database from file:\n\t"
+  //            << infile << std::endl;
+  int rnd_shower;
+  double shower_energy;
+  for (int evnt = 1; evnt <= nprimaries; evnt++)
+    {
+      if ( (evnt % (nprimaries/100) == 0) || (evnt == nprimaries) )
+        status(evnt, nprimaries);
+
+      rnd_shower = gRandom->Integer(corsDB->GetNShowers());
+      corsDB->GetShower(rnd_shower);
+      shower_energy = corsDB->SE();
+
+      if ((std::find(primary_gen.begin(),primary_gen.end(),rnd_shower)
+           == primary_gen.end()) && shower_energy < dMuon->E[1] && shower_energy > dMuon->E[0])
+        primary_gen.push_back(rnd_shower);
+      else evnt--;
+    }
+
+  return primary_gen;
+}
+
 
 //********************************************************************

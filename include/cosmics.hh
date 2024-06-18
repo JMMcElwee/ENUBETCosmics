@@ -15,7 +15,12 @@
 #include <iostream>
 #include <cmath>
 #include <unistd.h>
+#include <vector>
 
+#include "TRandom.h"
+
+#include "io.hh"
+#include "DBReader.hh"
 
 // --- Detector information ---
 /*
@@ -40,6 +45,8 @@ struct Detector {
 // --- Shower calculation -----
 int nshowers(Detector *obs, double kp, int primOverride);
 // ----------------------------
+
+std::vector<int> retrieve_primaries(DBReader *corsDB, Detector *dMuon, int primOverride);
 
 
 #endif

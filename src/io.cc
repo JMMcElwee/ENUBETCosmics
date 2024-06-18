@@ -47,7 +47,7 @@ bool is_alive(const std::string &file)
 // -------------------------
 
 // ----- Range correct -----
-bool range_valid(double lowVal, double highVal, const char *name)
+bool range_valid(double lowVal, double highVal, const char *varName)
 {
   // Assume range is valid
   bool isValid = true;
