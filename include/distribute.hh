@@ -27,5 +27,19 @@ struct Particle {
 };
 // ------------------------------
 
+// --- Map for shower repack ----
+// Necessary for the map 
+struct ShiftCoord
+{
+  int x;
+  int y;
+};
+
+/*
+  Map uses the x,y shift as a key
+  and the random time as the value. 
+*/
+//std::map<ShiftCoord,double> showerTiming;
+// ------------------------------
 
 #endif
