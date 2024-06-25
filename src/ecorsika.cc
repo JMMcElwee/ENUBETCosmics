@@ -28,7 +28,7 @@
 
 #include "io.hh"
 #include "DBReader.hh"
-#include "cosmics.hh"
+#include "detector.hh"
 
 #include "distribute.hh"
 
@@ -44,15 +44,20 @@ int main (int argc, char *argv[]) {
 
   
   // ----- Optional Defaults -----
-  Detector pdMuon;
+  /*  Detector pdMuon;
   pdMuon.x[0] = -4.;
   pdMuon.x[1] = 4.;
   pdMuon.y[0] = -4.;
   pdMuon.y[1] = 4.;
   pdMuon.t = 2.;
   pdMuon.E[0] = 50;
-  pdMuon.E[1] = 100000;
+  pdMuon.E[1] = 100000;*/
+  double xVals[2] = {-4.,4.};
+  double yVals[2] = {-4.,4.};
+  double EVals[2] = {50, 100000};
+  double spillT = 2.;
 
+  
   int primOverride = -1;
 
   std::string outfile = "enubet_cosmics.root";
@@ -70,21 +75,21 @@ int main (int argc, char *argv[]) {
 	  return 0;
 	case 'E':
 	  tempStr = optarg;
-	  pdMuon.E[0] = std::stod(tempStr.substr(0,tempStr.find(",")));
-	  pdMuon.E[1] = std::stod(tempStr.substr(tempStr.find(",")+1,tempStr.size()-1));
+	  EVals[0] = std::stod(tempStr.substr(0,tempStr.find(",")));
+	  EVals[1] = std::stod(tempStr.substr(tempStr.find(",")+1,tempStr.size()-1));
 	  break;
 	case 'x':
 	  tempStr = optarg;
-	  pdMuon.x[0] = std::stod(tempStr.substr(0,tempStr.find(",")));
-	  pdMuon.x[1] = std::stod(tempStr.substr(tempStr.find(",")+1,tempStr.size()-1));
+	  xVals[0] = std::stod(tempStr.substr(0,tempStr.find(",")));
+	  xVals[1] = std::stod(tempStr.substr(tempStr.find(",")+1,tempStr.size()-1));
 	  break;
 	case 'y':
 	  tempStr = optarg;
-	  pdMuon.y[0] = std::stod(tempStr.substr(0,tempStr.find(",")));
-	  pdMuon.y[1] = std::stod(tempStr.substr(tempStr.find(",")+1,tempStr.size()-1));
+	  yVals[0] = std::stod(tempStr.substr(0,tempStr.find(",")));
+	  yVals[1] = std::stod(tempStr.substr(tempStr.find(",")+1,tempStr.size()-1));
 	  break;
 	case 't':
-	  pdMuon.t = std::stod(optarg);
+	  spillT = std::stod(optarg);
 	  break;
 	case 'n':
 	  primOverride = std::stoi(optarg);
@@ -113,27 +118,27 @@ int main (int argc, char *argv[]) {
   }
 
   // ----- Energy range -----
-  if (!range_valid(pdMuon.E[0], pdMuon.E[1], "Energy")){
+  if (!range_valid(EVals[0], EVals[1], "Energy")){
     double tempConst;
-    tempConst = pdMuon.E[0];
-    pdMuon.E[0] = pdMuon.E[1];
-    pdMuon.E[1] = tempConst;
+    tempConst = EVals[0];
+    EVals[0] = EVals[1];
+    EVals[1] = tempConst;
   }
 
   // ----- X Coords -----
-  if (!range_valid(pdMuon.x[0], pdMuon.x[1], "x")){
+  if (!range_valid(xVals[0], xVals[1], "x")){
     double tempConst;
-    tempConst = pdMuon.x[0];
-    pdMuon.x[0] = pdMuon.x[1];
-    pdMuon.x[1] = tempConst;
+    tempConst = xVals[0];
+    xVals[0] = xVals[1];
+    xVals[1] = tempConst;
   }
   
   // ----- Y Coords -----
-  if (!range_valid(pdMuon.y[0], pdMuon.y[1], "y")){
+  if (!range_valid(yVals[0], yVals[1], "y")){
     double tempConst;
-    tempConst = pdMuon.y[0];
-    pdMuon.y[0] = pdMuon.y[1];
-    pdMuon.y[1] = tempConst;
+    tempConst = yVals[0];
+    yVals[0] = yVals[1];
+    yVals[1] = tempConst;
   }
   
   // ================================================================
@@ -142,11 +147,11 @@ int main (int argc, char *argv[]) {
   
   // === DATABASE ===================================================
 
-  
   DBReader *corsDB = new DBReader(infile.c_str());
+
+  Detector *pdMuon = new Detector(xVals, yVals, EVals);
   
-  std::vector<int> primary_gen = retrieve_primaries(corsDB, &pdMuon, primOverride);
-  
+  std::vector<int> primary_gen = pdMuon->GetPrimaries(corsDB, 1.8E4, 2.);
   
   // ================================================================ 
 
@@ -203,10 +208,10 @@ int main (int argc, char *argv[]) {
     sTheta = corsDB->STheta();
     sPhi = corsDB->SPhi();
     
-    sVtx[0] = gRandom->Uniform(pdMuon.x[0], pdMuon.x[1]);
-    sVtx[1] = gRandom->Uniform(pdMuon.y[0], pdMuon.y[1]);
+    sVtx[0] = gRandom->Uniform(xVals[0], xVals[1]);
+    sVtx[1] = gRandom->Uniform(yVals[0], yVals[1]);
 
-    sT = gRandom->Uniform(0, pdMuon.t);
+    sT = gRandom->Uniform(0, spillT);
     
     showerTree->Fill();
 
@@ -240,20 +245,20 @@ int main (int argc, char *argv[]) {
 	parts.vtx[1] = corsDB->Y()/100 + sVtx[1];
 
 	// Check the events are within the right region
-	while (parts.vtx[0] < pdMuon.x[0]) {
-	  parts.vtx[0] += pdMuon.x[1] - pdMuon.x[0];
+	while (parts.vtx[0] < xVals[0]) {
+	  parts.vtx[0] += xVals[1] - xVals[0];
 	  shift.at(0) = shift.at(0) + 1;
 	}
-	while (parts.vtx[0] > pdMuon.x[1]) {
-	  parts.vtx[0] -= pdMuon.x[1] - pdMuon.x[0];
+	while (parts.vtx[0] > xVals[1]) {
+	  parts.vtx[0] -= xVals[1] - xVals[0];
 	  shift.at(0) = shift.at(0) - 1;
 	}
-	while (parts.vtx[1] < pdMuon.y[0]) {
-	  parts.vtx[1] += pdMuon.y[1] - pdMuon.y[0];
+	while (parts.vtx[1] < yVals[0]) {
+	  parts.vtx[1] += yVals[1] - yVals[0];
 	  shift.at(1)++;
 	}
-	while (parts.vtx[1] > pdMuon.y[1]) {
-	  parts.vtx[1] -= pdMuon.y[1] - pdMuon.y[0];
+	while (parts.vtx[1] > yVals[1]) {
+	  parts.vtx[1] -= yVals[1] - yVals[0];
 	  shift.at(1)--;
 	}
 
@@ -264,7 +269,7 @@ int main (int argc, char *argv[]) {
 	*/
        	if ( ( abs(shift.at(0)) > 0 || abs(shift.at(1)) > 0 )
 	    && !showerTiming.count(shift)) {
-	  double newTime = gRandom->Uniform(0, pdMuon.t);
+	  double newTime = gRandom->Uniform(0, spillT);
 	  showerTiming.insert( {shift, newTime} );
 	  newShowerID++;
 	  showerIDMap.insert( {shift, newShowerID} );
