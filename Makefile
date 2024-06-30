@@ -8,10 +8,10 @@ TARGET = ecorsika
 
 ODIR=./obj
 
-_DEPS= io.hh DBReader.hh distribute.hh detector.hh
+_DEPS= io.hh DBReader.hh distribute.hh detector.hh EHandler.hh EShower.hh EParticle.hh
 DEPS = $(patsubst %,$(IDIR)/%,$(_DEPS))
 
-_OBJ= ecorsika.o io.o DBReader.o detector.o
+_OBJ= ecorsika.o io.o DBReader.o detector.o EHandler.o EShower.o EParticle.o
 OBJ = $(patsubst %,$(ODIR)/%,$(_OBJ))
 
 

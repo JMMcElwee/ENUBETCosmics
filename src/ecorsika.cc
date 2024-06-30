@@ -29,6 +29,9 @@
 #include "io.hh"
 #include "DBReader.hh"
 #include "detector.hh"
+#include "EHandler.hh"
+#include "EShower.hh"
+#include "EParticle.hh"
 
 #include "distribute.hh"
 
@@ -44,14 +47,6 @@ int main (int argc, char *argv[]) {
 
   
   // ----- Optional Defaults -----
-  /*  Detector pdMuon;
-  pdMuon.x[0] = -4.;
-  pdMuon.x[1] = 4.;
-  pdMuon.y[0] = -4.;
-  pdMuon.y[1] = 4.;
-  pdMuon.t = 2.;
-  pdMuon.E[0] = 50;
-  pdMuon.E[1] = 100000;*/
   double xVals[2] = {-4.,4.};
   double yVals[2] = {-4.,4.};
   double EVals[2] = {50, 100000};
@@ -117,29 +112,6 @@ int main (int argc, char *argv[]) {
     return 0;
   }
 
-  // ----- Energy range -----
-  if (!range_valid(EVals[0], EVals[1], "Energy")){
-    double tempConst;
-    tempConst = EVals[0];
-    EVals[0] = EVals[1];
-    EVals[1] = tempConst;
-  }
-
-  // ----- X Coords -----
-  if (!range_valid(xVals[0], xVals[1], "x")){
-    double tempConst;
-    tempConst = xVals[0];
-    xVals[0] = xVals[1];
-    xVals[1] = tempConst;
-  }
-  
-  // ----- Y Coords -----
-  if (!range_valid(yVals[0], yVals[1], "y")){
-    double tempConst;
-    tempConst = yVals[0];
-    yVals[0] = yVals[1];
-    yVals[1] = tempConst;
-  }
   
   // ================================================================
 
@@ -150,6 +122,7 @@ int main (int argc, char *argv[]) {
   DBReader *corsDB = new DBReader(infile.c_str());
 
   Detector *pdMuon = new Detector(xVals, yVals, EVals);
+  pdMuon->ValidateRange();
   
   std::vector<int> primary_gen = pdMuon->GetPrimaries(corsDB, 1.8E4, 2.);
   
@@ -165,7 +138,7 @@ int main (int argc, char *argv[]) {
 	    << outfile << std::endl;
   
   // ----- Shower information -----
-  TTree *showerTree = new TTree("shower", "Shower information");
+  /*TTree *showerTree = new TTree("shower", "Shower information");
   
   int sID;
   double sE, sTheta, sPhi, sT, sVtx[2];
@@ -175,8 +148,12 @@ int main (int argc, char *argv[]) {
   showerTree->Branch("theta", &sTheta, "theta/D");
   showerTree->Branch("phi", &sPhi, "phi/D");
   showerTree->Branch("t", &sT, "t/D");
-  showerTree->Branch("vtx[2]", sVtx, "vtx[2]/D");
+  showerTree->Branch("vtx[2]", sVtx, "vtx[2]/D");*/
 
+  EHandler::SetSpillT(spillT);
+
+	EShower showerHandler(corsDB, pdMuon);
+	showerHandler.CreateTree();
 
   // ----- Particle data -----
   TTree *particleTree = new TTree("particles", "Particles crossing the detector");
@@ -201,7 +178,7 @@ int main (int argc, char *argv[]) {
   
   
   for (int shower : primary_gen) {
-    corsDB->GetShower(shower);
+    /*corsDB->GetShower(shower);
     
     sID = newShowerID;
     sE = corsDB->SE();
@@ -213,7 +190,9 @@ int main (int argc, char *argv[]) {
 
     sT = gRandom->Uniform(0, spillT);
     
-    showerTree->Fill();
+    showerTree->Fill();*/
+
+    showerHandler.Process(shower, newShowerID);
 
     std::map<std::vector<int>,double> showerTiming;
     std::map<std::vector<int>,int> showerIDMap; 
@@ -232,7 +211,7 @@ int main (int argc, char *argv[]) {
 
 	// No shift means it's the shower timing
 	std::vector<int> shift = {0,0};
-	showerTiming.insert( {shift, sT} );
+	showerTiming.insert( {shift, showerHandler.T()} );
 	showerIDMap.insert( {shift, newShowerID} );
 	
 	// Grab event information and store it per shower 
@@ -241,8 +220,8 @@ int main (int argc, char *argv[]) {
 	parts.mom[0] = corsDB->PX();
 	parts.mom[1] = corsDB->PY();
 	parts.mom[2] = corsDB->PZ();
-	parts.vtx[0] = corsDB->X()/100 + sVtx[0];
-	parts.vtx[1] = corsDB->Y()/100 + sVtx[1];
+	parts.vtx[0] = corsDB->X()/100 + showerHandler.Vtx()[0];
+	parts.vtx[1] = corsDB->Y()/100 + showerHandler.Vtx()[1];
 
 	// Check the events are within the right region
 	while (parts.vtx[0] < xVals[0]) {
@@ -293,7 +272,7 @@ int main (int argc, char *argv[]) {
   // ================================================================ 
   
   corsOUT.cd();
-  showerTree->Write();
+  showerHandler.GetTree()->Write();
   particleTree->Write(); 
 
   corsOUT.Close();

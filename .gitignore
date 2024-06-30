@@ -1,5 +1,6 @@
 # Executables created by the software
 ./ecorsika
+ecorsika
 ./tools/corsika2root/corsika2root
 
 # Data not to be pushed to git
@@ -8,5 +9,6 @@ dat
 *.pdf
 
 # Other unused files 
-*.o 
+*.o
+*.so
 *~

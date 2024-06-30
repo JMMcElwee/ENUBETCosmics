@@ -107,6 +107,39 @@ void Detector::RetrievePrimaries(DBReader *corsDB, double kp, double spillT)
   //  return primary_gen;
 }
 
+
+bool Detector::IsRangeValid(double val[2])
+{
+  bool isValid = true;
+  
+  if (val[0] > val[1]) {
+    std::cout << "\033[33;1m[WARNING]\033[0m Supplied range, ["
+	      << val[0] << "," << val[1] << "], invalid. "
+	      << "Swapping values..." << std::endl;
+
+    double placeHold = val[0];
+    val[0] = val[1];
+    val[1] = placeHold;
+
+    isValid = false;
+  }
+
+  return isValid;
+}
+
+void Detector::ValidateRange()
+{
+  std::cout << "\033[34;1m[INFO]\033[0m Validating ranges:\n"
+	    << "       x-axis..." << std::endl;
+  IsRangeValid(m_x);
+  
+  std::cout << "       y-axis..." << std::endl;
+  IsRangeValid(m_y);
+
+  std::cout << "       Energy..." << std::endl;
+  IsRangeValid(m_E);
+}
+
 //**********************************************************
 
 
@@ -116,9 +149,9 @@ void Detector::RetrievePrimaries(DBReader *corsDB, double kp, double spillT)
 
 void Detector::DetectorInfo()
 {
-  std::cout << "\t x = [" << m_x[0] << "," << m_x[1] << "] m\n"
-	    << "\t y = [" << m_y[0] << "," << m_y[1] << "] m\n"
-	    << "\t SA = " << m_SA << " m2\n" << std::endl;
+  std::cout << "x:\t[" << m_x[0] << "," << m_x[1] << "] m\n"
+	    << "y:\t[" << m_y[0] << "," << m_y[1] << "] m\n"
+	    << "Surface Area:\t" << m_SA << " m2" << std::endl;
 }
 
 //**********************************************************
@@ -160,5 +193,11 @@ std::vector<int> Detector::GetPrimaries(DBReader *corsDB, double kp, double t)
 
 double *Detector::E()
 { return m_E; }
+
+double *Detector::X()
+{ return m_x; }
+
+double *Detector::Y()
+{ return m_y; }
 
 //**********************************************************

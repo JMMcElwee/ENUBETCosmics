@@ -41,6 +41,8 @@ private:
 
   void CalcNShowers(double kp, double t);
   void RetrievePrimaries(DBReader *corsDB, double kp = 0., double spillT = 0.);
+
+  bool IsRangeValid(double val[2]);
   
 public:
   Detector();
@@ -51,9 +53,12 @@ public:
 
   // ----- Access Functions -----
   double *E();
+  double *X();
+  double *Y();
 
   int NShowers(double kp = 1.8E4, double t = 2., bool primOverride = false);
   std::vector<int> GetPrimaries(DBReader *corsDB, double kp = 0., double spillT = 0.);
+  void ValidateRange();
   
 };
 
