@@ -21,8 +21,18 @@ EHandler::EHandler(DBReader *corsDB, Detector *pdMuon)
 EHandler::~EHandler()
 {}
 
+//**********************************************************
+
+
 
 //**********************************************************
+//***** STATIC VARIABLES ***********************************
+
+// Has to be initiated before the main function
+double EHandler::m_tspill = 0.1;
+
+//**********************************************************
+
 
 
 //**********************************************************
@@ -31,15 +41,14 @@ EHandler::~EHandler()
 TTree *EHandler::GetTree()
 { return m_tree; }
 
-double EHandler::GetSpillT()
-{ return m_tspill; }
-
 //**********************************************************
+
 
 
 //**********************************************************
 //***** STATIC VARIABLES ***********************************
 
+// Globally set the spill time 
 void EHandler::SetSpillT(double t)
 { m_tspill = t; }
 

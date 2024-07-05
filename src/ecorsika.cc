@@ -51,9 +51,9 @@ int main (int argc, char *argv[]) {
   double yVals[2] = {-4.,4.};
   double EVals[2] = {50, 100000};
   double spillT = 2.;
-
   
   int primOverride = -1;
+
 
   std::string outfile = "enubet_cosmics.root";
   
@@ -119,11 +119,14 @@ int main (int argc, char *argv[]) {
   
   // === DATABASE ===================================================
 
+  // Read the database using the reader class 
   DBReader *corsDB = new DBReader(infile.c_str());
 
+  //	Setup a detector level to read from 
   Detector *pdMuon = new Detector(xVals, yVals, EVals);
   pdMuon->ValidateRange();
   
+  // Collect primaries from the detector. Should probably put this in the function
   std::vector<int> primary_gen = pdMuon->GetPrimaries(corsDB, 1.8E4, 2.);
   
   // ================================================================ 
@@ -132,148 +135,43 @@ int main (int argc, char *argv[]) {
 
   // === EVENT LOOPS ================================================ 
   
+  // Outfile for saving the events 
   TFile corsOUT(outfile.c_str(), "RECREATE");
 
   std::cout << "\033[1;34m[INFO]\033[0m Saving ENUBET cosmics to output file:\n\t"
 	    << outfile << std::endl;
   
-  // ----- Shower information -----
-  /*TTree *showerTree = new TTree("shower", "Shower information");
-  
-  int sID;
-  double sE, sTheta, sPhi, sT, sVtx[2];
-  
-  showerTree->Branch("id", &sID, "id/I");
-  showerTree->Branch("E", &sE, "E/D");
-  showerTree->Branch("theta", &sTheta, "theta/D");
-  showerTree->Branch("phi", &sPhi, "phi/D");
-  showerTree->Branch("t", &sT, "t/D");
-  showerTree->Branch("vtx[2]", sVtx, "vtx[2]/D");*/
-
+	// Set the spill time for all EHandler objects
   EHandler::SetSpillT(spillT);
 
+  // Create a handler for the shower
 	EShower showerHandler(corsDB, pdMuon);
 	showerHandler.CreateTree();
 
-  // ----- Particle data -----
-  TTree *particleTree = new TTree("particles", "Particles crossing the detector");
+	// Create a handler for the particle 
+	EParticle particleHandler(corsDB, pdMuon);
+	particleHandler.CreateTree();
 
-  Particle parts;
-  
-  particleTree->Branch("parID", &parts.ParID, "parID/I");
-  particleTree->Branch("pdg", &parts.PDG, "pdg/I");
-  particleTree->Branch("eK", &parts.ek, "eK/D");
-  particleTree->Branch("mom[3]", parts.mom, "mom[3]/D");
-  particleTree->Branch("vtx[2]", parts.vtx, "vtx[2]/D");
-  particleTree->Branch("t", &parts.t, "t/D");
-
-  
-  // Use this variable to speed up searching for particles
-  int last_position = 0;
-  
-  // Sort the vector lowest to highest in order to speed up searching (we can skip many
+	// Sort the vector lowest to highest in order to speed up searching (we can skip many
   // of the early events this way...
   sort(primary_gen.begin(), primary_gen.end());
-  int current_shower, newShowerID = 0; 
   
-  
+  // Loop through the showers selected and process them 
   for (int shower : primary_gen) {
-    /*corsDB->GetShower(shower);
-    
-    sID = newShowerID;
-    sE = corsDB->SE();
-    sTheta = corsDB->STheta();
-    sPhi = corsDB->SPhi();
-    
-    sVtx[0] = gRandom->Uniform(xVals[0], xVals[1]);
-    sVtx[1] = gRandom->Uniform(yVals[0], yVals[1]);
 
-    sT = gRandom->Uniform(0, spillT);
-    
-    showerTree->Fill();*/
-
-    showerHandler.Process(shower, newShowerID);
-
-    std::map<std::vector<int>,double> showerTiming;
-    std::map<std::vector<int>,int> showerIDMap; 
-    /*
-      First we search for the number of particles per shower, filling
-      the map with their relative positions and the new time of the
-      translated shower.
-      We can then use the information on the position of the particles
-      in the ROOT tree to speed up the future loops!
-    */
-    for (int evnt = last_position; evnt < corsDB->GetNEvents(); evnt++){
-      corsDB->GetEvent(evnt);
-      current_shower = corsDB->ParID();
-      
-      if (current_shower == shower) {
-
-	// No shift means it's the shower timing
-	std::vector<int> shift = {0,0};
-	showerTiming.insert( {shift, showerHandler.T()} );
-	showerIDMap.insert( {shift, newShowerID} );
-	
-	// Grab event information and store it per shower 
-	parts.PDG = corsDB->PDG();
-	parts.ek = corsDB->EK();
-	parts.mom[0] = corsDB->PX();
-	parts.mom[1] = corsDB->PY();
-	parts.mom[2] = corsDB->PZ();
-	parts.vtx[0] = corsDB->X()/100 + showerHandler.Vtx()[0];
-	parts.vtx[1] = corsDB->Y()/100 + showerHandler.Vtx()[1];
-
-	// Check the events are within the right region
-	while (parts.vtx[0] < xVals[0]) {
-	  parts.vtx[0] += xVals[1] - xVals[0];
-	  shift.at(0) = shift.at(0) + 1;
-	}
-	while (parts.vtx[0] > xVals[1]) {
-	  parts.vtx[0] -= xVals[1] - xVals[0];
-	  shift.at(0) = shift.at(0) - 1;
-	}
-	while (parts.vtx[1] < yVals[0]) {
-	  parts.vtx[1] += yVals[1] - yVals[0];
-	  shift.at(1)++;
-	}
-	while (parts.vtx[1] > yVals[1]) {
-	  parts.vtx[1] -= yVals[1] - yVals[0];
-	  shift.at(1)--;
-	}
-
-	/*
-	  If shift value isn't 0, and it's NOT in the map,
-	  throw a random time for this position and add it
-	  to the map.
-	*/
-       	if ( ( abs(shift.at(0)) > 0 || abs(shift.at(1)) > 0 )
-	    && !showerTiming.count(shift)) {
-	  double newTime = gRandom->Uniform(0, spillT);
-	  showerTiming.insert( {shift, newTime} );
-	  newShowerID++;
-	  showerIDMap.insert( {shift, newShowerID} );
-	}
-
-	parts.t = corsDB->T()/1E9 + showerTiming.at(shift);
-	parts.ParID = showerIDMap.at(shift);
-
-	particleTree->Fill();
-	
-      }
-      else if (current_shower > shower) {
-	last_position = evnt;
-	break;
-      }
-      
-    }
-    newShowerID++;
-    
+    showerHandler.Process(shower);
+    particleHandler.Process(shower, &showerHandler);
+ 
   }
   // ================================================================ 
   
   corsOUT.cd();
+  
+  // Write everything to the output file 
   showerHandler.GetTree()->Write();
-  particleTree->Write(); 
+  particleHandler.GetTree()->Write();
+
+
 
   corsOUT.Close();
 

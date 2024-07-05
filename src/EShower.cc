@@ -3,7 +3,7 @@
  * Author:  Jordan McElwee                        *
  * Email: mcelwee@lp2ib.in2p3.fr                  *
  *                                                *
- * Base class to hold the Tree nformation of the *
+ * Base class to hold the Tree information of the *
  * showers and the particles.                     * 
  *                                                *
  * Changelog:                                     *
@@ -23,7 +23,7 @@ EShower::EShower(DBReader *corsDB, Detector *pdMuon)
 
 
 //**********************************************************
-//***** DATA HANDLING **************************************
+//***** ROOT METHODS ***************************************
 
 void EShower::CreateTree()
 {
@@ -37,12 +37,17 @@ void EShower::CreateTree()
 
 }
 
-void EShower::Process(int shower, int newShowerID)
-//void EShower::Process(EHandler shower)
+//**********************************************************
+
+
+//**********************************************************
+//***** DATA HANDLING **************************************
+
+void EShower::Process(int shower)
 {
     corsDB->GetShower(shower);
 
-    m_id = newShowerID;
+    IncrementShower();
     m_E = corsDB->SE();
     m_theta = corsDB->STheta();
     m_phi = corsDB->SPhi();
@@ -50,10 +55,15 @@ void EShower::Process(int shower, int newShowerID)
     m_vtx[0] = gRandom->Uniform(pdMuon->X()[0], pdMuon->X()[1]);
     m_vtx[1] = gRandom->Uniform(pdMuon->Y()[0], pdMuon->Y()[1]);
 
-    m_t = gRandom->Uniform(0, EHandler::GetSpillT());
+    m_t = gRandom->Uniform(0, m_tspill);
 
     m_tree->Fill();
 
+}
+
+void EShower::IncrementShower()
+{
+    m_id++;
 }
 
 //**********************************************************
@@ -69,7 +79,8 @@ double EShower::T()
 double *EShower::Vtx()
 { return m_vtx; }
 
-
+int EShower::ID()
+{ return m_id; }
 
 
 //**********************************************************

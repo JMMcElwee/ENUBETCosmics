@@ -20,27 +20,31 @@
 class EHandler
 {
 public:
+
+    // --- Constructors ---
     EHandler(DBReader *corsDB, Detector *pdMuon);
     virtual ~EHandler();
 
+    // --- Base only methods --- 
     TTree *GetTree();
     static void SetSpillT(double t);
-    double GetSpillT();
-    
+
+    // --- For inheritance --- 
     virtual void CreateTree() = 0;
-    virtual void Process(int shower, int newShowerID) = 0;
-    //virtual void Process(EHandler shower);
     
 
 protected:
+
+    // --- Members --- 
     DBReader *corsDB {nullptr};
-    TTree *m_tree {nullptr};
     Detector *pdMuon {nullptr};
+    TTree *m_tree {nullptr};
     
+    // --- Static members --- 
     static double m_tspill;
 
-};
 
+};
 
 
 #endif // Header guard

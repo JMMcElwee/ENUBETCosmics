@@ -16,6 +16,7 @@
 #include <map>
 
 #include "EHandler.hh"
+#include "EShower.hh"
 
 class EParticle : public EHandler
 {
@@ -30,8 +31,7 @@ public:
     EParticle(DBReader *corsDB, Detector *pdMuon);
 
     void CreateTree() override;
-    void Process(int shower, int newShowerID) override;
-    //void Process(EHandler temp);
+    void Process(int shower, EShower *showerHandler);
 
 };
 

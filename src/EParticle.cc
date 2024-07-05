@@ -38,10 +38,10 @@ void EParticle::CreateTree()
 }
 
 
-void EParticle::Process(int shower, int newShowerID)
+void EParticle::Process(int shower, EShower *showerHandler)
 {
-    std::cout << "something" << std::endl;
-/*    std::map<std::vector<int>, double> showerTiming;
+
+    std::map<std::vector<int>, double> showerTiming;
     std::map<std::vector<int>, int> showerIDMap;
 
     for (int evnt = m_lastPos; evnt < corsDB->GetNEvents(); evnt++) {
@@ -49,51 +49,52 @@ void EParticle::Process(int shower, int newShowerID)
 
         if (corsDB->ParID() == shower) {
             std::vector<int> shift = {0, 0};
-            showerTiming[shift] = gRandom->Uniform(0, spillT);
-            showerIDMap[shift] = newShowerID;
+            showerTiming.insert( {shift, showerHandler->T()} );
+            showerIDMap.insert ( {shift, showerHandler->ID() } );
 
             m_pdg = corsDB->PDG();
             m_eK = corsDB->EK();
             m_mom[0] = corsDB->PX();
             m_mom[1] = corsDB->PY();
             m_mom[2] = corsDB->PZ();
-            m_vtx[0] = corsDB->X() / 100 + xVals[0];
-            m_vtx[1] = corsDB->Y() / 100 + yVals[0];
 
-            while (parts.vtx[0] < xVals[0]) {
-                parts.vtx[0] += xVals[1] - xVals[0];
+            // This is also wrong.. should be showerHandler.X/Y
+            m_vtx[0] = corsDB->X() / 100 + showerHandler->Vtx()[0];
+            m_vtx[1] = corsDB->Y() / 100 + showerHandler->Vtx()[1];
+
+            while (m_vtx[0] < pdMuon->X()[0]) {
+                m_vtx[0] += pdMuon->X()[1] - pdMuon->X()[0];
                 shift[0]++;
             }
-            while (parts.vtx[0] > xVals[1]) {
-                parts.vtx[0] -= xVals[1] - xVals[0];
+            while (m_vtx[0] > pdMuon->X()[1]) {
+                m_vtx[0] -= pdMuon->X()[1] - pdMuon->X()[0];
                 shift[0]--;
             }
-            while (parts.vtx[1] < yVals[0]) {
-                parts.vtx[1] += yVals[1] - yVals[0];
+            while (m_vtx[1] < pdMuon->Y()[0]) {
+                m_vtx[1] += pdMuon->Y()[1] - pdMuon->Y()[0];
                 shift[1]++;
             }
-            while (parts.vtx[1] > yVals[1]) {
-                parts.vtx[1] -= yVals[1] - yVals[0];
+            while (m_vtx[1] > pdMuon->Y()[1]) {
+                m_vtx[1] -= pdMuon->Y()[1] - pdMuon->Y()[0];
                 shift[1]--;
             }
 
             if ((std::abs(shift[0]) > 0 || std::abs(shift[1]) > 0) && !showerTiming.count(shift)) {
-                double newTime = gRandom->Uniform(0, spillT);
-                showerTiming[shift] = newTime;
-                newShowerID++;
-                showerIDMap[shift] = newShowerID;
+                showerTiming[shift] = gRandom->Uniform(0, m_tspill);
+                showerHandler->IncrementShower();
+                showerIDMap[shift] = showerHandler->ID();
             }
 
-            parts.t = corsDB->T() / 1E9 + showerTiming[shift];
-            parts.ParID = showerIDMap[shift];
+            m_t = corsDB->T() / 1E9 + showerTiming[shift];
+            m_id = showerIDMap[shift];
 
-            tree->Fill();
+            m_tree->Fill();
         } else if (corsDB->ParID() > shower) {
-            last_position = evnt;
+            m_lastPos = evnt;
             break;
         }
     }
-*/
+
 }
 
 //**********************************************************
