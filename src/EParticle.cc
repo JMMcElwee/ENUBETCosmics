@@ -22,21 +22,28 @@ EParticle::EParticle(DBReader *corsDB, Detector *pdMuon)
 
 
 //**********************************************************
-//**********************************************************
+//***** ROOT METHODS ***************************************
 
 void EParticle::CreateTree()
 {
 
+    m_saveAsROOT = true;
+
     m_tree = new TTree("particles", "Particles crossing the detector");
     m_tree->Branch("parID", &m_id, "parID/I");
-    m_tree->Branch("pdg", &m_pdg, "pdg/I");
-    m_tree->Branch("eK", &m_eK, "eK/D");
-    m_tree->Branch("mom[3]", m_mom, "mom[3]/D");
-    m_tree->Branch("vtx[2]", m_vtx, "vtx[2]/D");
-    m_tree->Branch("t", &m_t, "t/D");
+    m_tree->Branch("pdg", &currentParticle.m_pdg, "pdg/I");
+    m_tree->Branch("eK", &currentParticle.m_eK, "eK/D");
+    m_tree->Branch("mom[3]", currentParticle.m_mom, "mom[3]/D");
+    m_tree->Branch("vtx[2]", currentParticle.m_vtx, "vtx[2]/D");
+    m_tree->Branch("t", &currentParticle.m_t, "t/D");
 
 }
 
+//**********************************************************
+
+
+//**********************************************************
+//***** DATA HANDLING **************************************
 
 void EParticle::Process(int shower, EShower *showerHandler)
 {
@@ -52,30 +59,30 @@ void EParticle::Process(int shower, EShower *showerHandler)
             showerTiming.insert( {shift, showerHandler->T()} );
             showerIDMap.insert ( {shift, showerHandler->ID() } );
 
-            m_pdg = corsDB->PDG();
-            m_eK = corsDB->EK();
-            m_mom[0] = corsDB->PX();
-            m_mom[1] = corsDB->PY();
-            m_mom[2] = corsDB->PZ();
+            currentParticle.m_pdg = corsDB->PDG();
+            currentParticle.m_eK = corsDB->EK();
+            currentParticle.m_mom[0] = corsDB->PX();
+            currentParticle.m_mom[1] = corsDB->PY();
+            currentParticle.m_mom[2] = corsDB->PZ();
 
             // This is also wrong.. should be showerHandler.X/Y
-            m_vtx[0] = corsDB->X() / 100 + showerHandler->Vtx()[0];
-            m_vtx[1] = corsDB->Y() / 100 + showerHandler->Vtx()[1];
+            currentParticle.m_vtx[0] = corsDB->X() / 100 + showerHandler->Vtx()[0];
+            currentParticle.m_vtx[1] = corsDB->Y() / 100 + showerHandler->Vtx()[1];
 
-            while (m_vtx[0] < pdMuon->X()[0]) {
-                m_vtx[0] += pdMuon->X()[1] - pdMuon->X()[0];
+            while (currentParticle.m_vtx[0] < pdMuon->X()[0]) {
+                currentParticle.m_vtx[0] += pdMuon->X()[1] - pdMuon->X()[0];
                 shift[0]++;
             }
-            while (m_vtx[0] > pdMuon->X()[1]) {
-                m_vtx[0] -= pdMuon->X()[1] - pdMuon->X()[0];
+            while (currentParticle.m_vtx[0] > pdMuon->X()[1]) {
+                currentParticle.m_vtx[0] -= pdMuon->X()[1] - pdMuon->X()[0];
                 shift[0]--;
             }
-            while (m_vtx[1] < pdMuon->Y()[0]) {
-                m_vtx[1] += pdMuon->Y()[1] - pdMuon->Y()[0];
+            while (currentParticle.m_vtx[1] < pdMuon->Y()[0]) {
+                currentParticle.m_vtx[1] += pdMuon->Y()[1] - pdMuon->Y()[0];
                 shift[1]++;
             }
-            while (m_vtx[1] > pdMuon->Y()[1]) {
-                m_vtx[1] -= pdMuon->Y()[1] - pdMuon->Y()[0];
+            while (currentParticle.m_vtx[1] > pdMuon->Y()[1]) {
+                currentParticle.m_vtx[1] -= pdMuon->Y()[1] - pdMuon->Y()[0];
                 shift[1]--;
             }
 
@@ -85,10 +92,13 @@ void EParticle::Process(int shower, EShower *showerHandler)
                 showerIDMap[shift] = showerHandler->ID();
             }
 
-            m_t = corsDB->T() / 1E9 + showerTiming[shift];
+            currentParticle.m_t = corsDB->T() / 1E9 + showerTiming[shift];
             m_id = showerIDMap[shift];
 
-            m_tree->Fill();
+            particles.push_back(currentParticle);
+
+            if (m_saveAsROOT) m_tree->Fill();
+
         } else if (corsDB->ParID() > shower) {
             m_lastPos = evnt;
             break;
@@ -96,5 +106,9 @@ void EParticle::Process(int shower, EShower *showerHandler)
     }
 
 }
+
+
+const std::vector<EParticle::Particle> &EParticle::GetParticles()
+{ return particles; }
 
 //**********************************************************

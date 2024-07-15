@@ -40,6 +40,8 @@ protected:
     Detector *pdMuon {nullptr};
     TTree *m_tree {nullptr};
     
+    bool m_saveAsROOT = false;
+    
     // --- Static members --- 
     static double m_tspill;
 

@@ -22,6 +22,10 @@ OBJ = $(patsubst %,$(ODIR)/%,$(_OBJ))
 
 all: $(TARGET) $(LIBRARY)
 
+lib: $(LIBRARY)
+
+exe: $(TARGET)
+
 
 $(ODIR)/%.o: src/%.cc $(DEPS)
 	$(CXX) -c -o $@ $< $(CXXFLAGS) $(LDFLAGS)

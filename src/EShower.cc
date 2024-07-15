@@ -27,6 +27,9 @@ EShower::EShower(DBReader *corsDB, Detector *pdMuon)
 
 void EShower::CreateTree()
 {
+
+    m_saveAsROOT = true;
+
     m_tree = new TTree("shower", "Shower information");
     m_tree->Branch("id", &m_id, "id/I");
     m_tree->Branch("E", &m_E, "E/D");
@@ -57,7 +60,7 @@ void EShower::Process(int shower)
 
     m_t = gRandom->Uniform(0, m_tspill);
 
-    m_tree->Fill();
+    if (m_saveAsROOT) m_tree->Fill();
 
 }
 
