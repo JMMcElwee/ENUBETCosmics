@@ -22,21 +22,12 @@
 class EParticle : public EHandler
 {
 
-private:
+public: 
 
     struct Particle {
         int m_pdg;
         double m_eK, m_mom[3], m_vtx[2], m_t;
     };
-
-    int m_id;
-    int m_lastPos = 0;
-
-public: 
-
-    // --- Members ---
-    Particle currentParticle;
-    std::vector<Particle> particles;
 
     // --- Constructors ---
     EParticle(DBReader *corsDB, Detector *pdMuon);
@@ -48,6 +39,15 @@ public:
     void Process(int shower, EShower *showerHandler);
     const std::vector<EParticle::Particle> &GetParticles(); // This should change to an iterator
 
+
+private:
+
+    // --- Members ---
+    Particle currentParticle;
+    std::vector<Particle> particles;
+
+    int m_id;
+    int m_lastPos = 0;
 
 
 
