@@ -2,8 +2,8 @@
 
 @PACKAGE_INIT@
 
-set_and_check(ECosmic_INCLUDE_DIRS "@ECOSMIC_INSTALL_DIR@/include")
-set_and_check(ECosmic_LIBRARY_DIRS "@ECOSMIC_INSTALL_DIR@/lib")
+set_and_check(ECosmic_INCLUDE_DIR "@ECOSMIC_INSTALL_DIR@/include")
+set_and_check(ECosmic_LIBRARY_DIR "@ECOSMIC_INSTALL_DIR@/lib")
 
 # Provide compatibility with the find_package command
 include(CMakeFindDependencyMacro)
