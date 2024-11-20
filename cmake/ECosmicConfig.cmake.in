@@ -1,0 +1,16 @@
+# Config file for the ECosmic package
+
+@PACKAGE_INIT@
+
+set_and_check(ECosmic_INCLUDE_DIRS "@ECOSMIC_INSTALL_DIR@/include")
+set_and_check(ECosmic_LIBRARY_DIRS "@ECOSMIC_INSTALL_DIR@/lib")
+
+# Provide compatibility with the find_package command
+include(CMakeFindDependencyMacro)
+
+# Our library dependencies (contains definitions for IMPORTED targets)
+include("@ECOSMIC_CMAKECONFIG_DIR@/ECosmicTargets.cmake")
+
+# Set ECosmic_DIR for other projects
+set(ECosmic_DIR "@CMAKE_INSTALL_PREFIX@/lib/cmake/ECosmic")
+
