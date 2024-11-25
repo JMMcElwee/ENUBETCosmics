@@ -3,6 +3,10 @@
 ECosmic
 ./tools/corsika2root/corsika2root
 
+# build and install directories
+build/
+install/
+
 # Data not to be pushed to git
 dat
 *.root
