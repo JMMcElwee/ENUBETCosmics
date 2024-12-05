@@ -35,16 +35,10 @@ private:
   double m_SA {};
   double m_E[2] {};
 
-  // Shower related
-  int m_nshowers {-1};
-  std::vector<int> m_primaries {};
-
-  void CalcNShowers(double kp, double t);
-  void RetrievePrimaries(DBReader *corsDB, double kp = 0., double spillT = 0.);
-
   bool IsRangeValid(double val[2]);
   
 public:
+  
   Detector();
   Detector(double x[2], double y[2], double E[2]);
 
@@ -55,9 +49,8 @@ public:
   double *E();
   double *X();
   double *Y();
-
-  int NShowers(double kp = 1.8E4, double t = 2., bool primOverride = false);
-  std::vector<int> GetPrimaries(DBReader *corsDB, double kp = 0., double spillT = 0.);
+  double SA();
+  
   void ValidateRange();
   
 };

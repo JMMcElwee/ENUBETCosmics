@@ -14,35 +14,78 @@
 #include <iostream>
 
 #include "TRandom.h"
+#include "TTree.h"
 
-#include "EHandler.hh"
+#include "DBReader.hh"
+#include "detector.hh"
+#include "EShower.hh"
 
-class EShower : public EHandler
+class EShower
 {
 
 private:
+  
+  // Shower variables to output to the TTree
+  double m_E, m_theta, m_phi, m_t, m_vtx[2];
 
-    // Shower variables to output to the TTree
-    int m_id = 0;
-    double m_E, m_theta, m_phi, m_t, m_vtx[2];
-
+  
 public: 
 
-    // --- Constructors ---
-    EShower(DBReader *corsDB, Detector *pdMuon);
+  // --- CMC Model Params ---
+  enum PType {
+    H =	17200,
+    He = 9200,
+    C =	6200,
+    N =	6200,
+    O = 6200,
+    Mg = 9200,
+    Fe = 6200,
+    Complete = 0
+  };
+  int m_nshowers {-1};
+  std::vector<int> m_primaries {};  
+  int NShowers();
+  std::vector<int> GetShowers(); 
 
-    // --- ROOT Methods --- 
-    void CreateTree() override;
- 
-    // --- Data Handling ---
-    void Process(int shower);
-    void IncrementShower();
+  
+  // --- ROOT Methods ---
+  TTree *GetTree();
+  virtual void CreateTree();
+  
+  // --- Data Handling ---
+  void Process(int shower);
+  void IncrementShower();
 
-    // --- Access Functions ---
-    int ID();
-    double T();
-    double *Vtx();
+  static void SetSpillT(double t);
+  
+  // --- Access Functions ---
+  int ID();
+  virtual double T() final;
+  virtual double *Vtx() final;
+  
+  // --- Constructors ---
+  EShower(DBReader *corsDB, Detector *pdMuon);
+  EShower(DBReader *corsDB, Detector *pdMuon, PType primary);
+  virtual ~EShower();
 
+  
+protected:
+
+  // --- Members ---
+  DBReader *corsDB {nullptr};
+  Detector *pdMuon {nullptr};
+  TTree *m_tree {nullptr};
+
+  bool m_saveAsROOT = false;
+
+  int m_id = 0;
+
+  // --- Static members ---
+  static double m_tspill;
+
+  // --- CMC Model ---
+  PType m_primary = PType::H;
+  
 };
 
 #endif // Header guard
