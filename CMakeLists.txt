@@ -30,7 +30,6 @@ set(ECOSMIC_LIB_SOURCES
   ${ECOSMIC_SOURCE_DIR}/io.cc
   ${ECOSMIC_SOURCE_DIR}/DBReader.cc
   ${ECOSMIC_SOURCE_DIR}/detector.cc
-  ${ECOSMIC_SOURCE_DIR}/EHandler.cc
   ${ECOSMIC_SOURCE_DIR}/EShower.cc
   ${ECOSMIC_SOURCE_DIR}/EParticle.cc
 )

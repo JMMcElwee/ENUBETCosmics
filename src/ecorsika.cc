@@ -29,7 +29,6 @@
 #include "io.hh"
 #include "DBReader.hh"
 #include "detector.hh"
-#include "EHandler.hh"
 #include "EShower.hh"
 #include "EParticle.hh"
 
@@ -49,7 +48,7 @@ int main (int argc, char *argv[]) {
   // ----- Optional Defaults -----
   double xVals[2] = {-4.,4.};
   double yVals[2] = {-4.,4.};
-  double EVals[2] = {50, 100000};
+  double EVals[2] = {50, 1.E8};
   double spillT = 2.;
   
   int primOverride = -1;
@@ -107,10 +106,10 @@ int main (int argc, char *argv[]) {
 
 
   // ----- File exists -----
-  if (!is_alive(infile)) {
-    std::cout << "\033[31;1m[ERROR]\033[0m File \'" << infile << "\' does not exist." << std::endl;
-    return 0;
-  }
+  //  if (!is_alive(infile)) {
+  //    std::cout << "\033[31;1m[ERROR]\033[0m File \'" << infile << "\' does not exist." << std::endl;
+  //    return 0;
+  //  }
 
   
   // ================================================================
@@ -126,9 +125,6 @@ int main (int argc, char *argv[]) {
   Detector *pdMuon = new Detector(xVals, yVals, EVals);
   pdMuon->ValidateRange();
   
-  // Collect primaries from the detector. Should probably put this in the function
-  std::vector<int> primary_gen = pdMuon->GetPrimaries(corsDB, 1.8E4, 2.);
-  
   // ================================================================ 
 
 
@@ -142,22 +138,22 @@ int main (int argc, char *argv[]) {
 	    << outfile << std::endl;
   
 	// Set the spill time for all EHandler objects
-  EHandler::SetSpillT(spillT);
+  EShower::SetSpillT(spillT);
 
   // Create a handler for the shower
-	EShower showerHandler(corsDB, pdMuon);
-	showerHandler.CreateTree();
+  EShower showerHandler(corsDB, pdMuon, EShower::H);
+  showerHandler.CreateTree();
+  showerHandler.NShowers();
+  std::vector<int> testVec = showerHandler.GetShowers();
+  
+  
+  // Create a handler for the particle 
+  EParticle particleHandler(corsDB, pdMuon);
+  particleHandler.CreateTree();
 
-	// Create a handler for the particle 
-	EParticle particleHandler(corsDB, pdMuon);
-	particleHandler.CreateTree();
-
-	// Sort the vector lowest to highest in order to speed up searching (we can skip many
-  // of the early events this way...
-  sort(primary_gen.begin(), primary_gen.end());
   
   // Loop through the showers selected and process them 
-  for (int shower : primary_gen) {
+  for ( int shower : showerHandler.GetShowers() ) {
 
     showerHandler.Process(shower);
     particleHandler.Process(shower, &showerHandler);
@@ -171,10 +167,7 @@ int main (int argc, char *argv[]) {
   showerHandler.GetTree()->Write();
   particleHandler.GetTree()->Write();
 
-
-
   corsOUT.Close();
-
 
   return 0;
 }

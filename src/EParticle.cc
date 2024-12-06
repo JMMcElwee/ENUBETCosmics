@@ -14,9 +14,11 @@
 //**********************************************************
 //***** CONSTRUCTORS ***************************************
 
+// - - - - - - - - - - - - - - - 
 EParticle::EParticle(DBReader *corsDB, Detector *pdMuon)
-    : EHandler(corsDB, pdMuon)
+    : EShower(corsDB, pdMuon)
 {}
+// - - - - - - - - - - - - - - -
 
 //**********************************************************
 
@@ -24,6 +26,7 @@ EParticle::EParticle(DBReader *corsDB, Detector *pdMuon)
 //**********************************************************
 //***** ROOT METHODS ***************************************
 
+// - - - - - - - - - - - - - - - 
 void EParticle::CreateTree()
 {
 
@@ -38,6 +41,7 @@ void EParticle::CreateTree()
     m_tree->Branch("t", &currentParticle.m_t, "t/D");
 
 }
+// - - - - - - - - - - - - - - - 
 
 //**********************************************************
 
@@ -45,6 +49,7 @@ void EParticle::CreateTree()
 //**********************************************************
 //***** DATA HANDLING **************************************
 
+// - - - - - - - - - - - - - - - 
 void EParticle::Process(int shower, EShower *showerHandler)
 {
 
@@ -106,9 +111,11 @@ void EParticle::Process(int shower, EShower *showerHandler)
     }
 
 }
+// - - - - - - - - - - - - - - - 
 
-
+// - - - - - - - - - - - - - - - 
 const std::vector<EParticle::Particle> &EParticle::GetParticles()
 { return particles; }
+// - - - - - - - - - - - - - - - 
 
 //**********************************************************

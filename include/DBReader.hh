@@ -12,6 +12,9 @@
 #ifndef DBREADER_HH
 #define DBREADER_HH
 
+#include <sys/stat.h>
+#include <iostream>
+
 #include "TFile.h"
 #include "TTree.h"
 
@@ -83,6 +86,9 @@ public:
   int GetNShowers();
   int GetNEvents();
 
+  // --- General ---
+  inline bool FileExist(const std::string &name);
+  
 };
 
 
