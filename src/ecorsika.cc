@@ -28,7 +28,7 @@
 
 #include "io.hh"
 #include "DBReader.hh"
-#include "detector.hh"
+#include "EDetector.hh"
 #include "EShower.hh"
 #include "EParticle.hh"
 
@@ -46,42 +46,49 @@ int main (int argc, char *argv[]) {
 
   
   // ----- Optional Defaults -----
-  double xVals[2] = {-4.,4.};
-  double yVals[2] = {-4.,4.};
-  double EVals[2] = {50, 1.E8};
+  double EVals[2] = {80., 1.E8};
   double spillT = 2.;
   
+  double det_size[3] = {12., 12., 12.};
+  double center[3] = {0., 0., 0.};
+  double buffer[2] = {0., 0.};  
+  
   int primOverride = -1;
-
 
   std::string outfile = "enubet_cosmics.root";
   
   // ----- Read Command Line -----
   int opt;
   optind = nReqArg + 1;
-  while ((opt = getopt(argc, argv, ":vhE:x:y:t:n:o:")) != -1)
+  while ((opt = getopt(argc, argv, ":vhE:b:c:d:t:n:o:")) != -1)
     {
       std::string tempStr;
       switch (opt)
 	{
 	case 'h':
-	  help();
+	  IO::help();
 	  return 0;
 	case 'E':
 	  tempStr = optarg;
-	  EVals[0] = std::stod(tempStr.substr(0,tempStr.find(",")));
-	  EVals[1] = std::stod(tempStr.substr(tempStr.find(",")+1,tempStr.size()-1));
+	  EVals[0] = IO::return_arg(tempStr,2)[0];
+	  EVals[1] = IO::return_arg(tempStr,2)[1];
 	  break;
-	case 'x':
+	case 'b':
 	  tempStr = optarg;
-	  xVals[0] = std::stod(tempStr.substr(0,tempStr.find(",")));
-	  xVals[1] = std::stod(tempStr.substr(tempStr.find(",")+1,tempStr.size()-1));
+	  buffer[0] = IO::return_arg(tempStr,2)[0];
+	  buffer[1] = IO::return_arg(tempStr,2)[1];
 	  break;
-	case 'y':
+	case 'c':
 	  tempStr = optarg;
-	  yVals[0] = std::stod(tempStr.substr(0,tempStr.find(",")));
-	  yVals[1] = std::stod(tempStr.substr(tempStr.find(",")+1,tempStr.size()-1));
+	  center[0] = IO::return_arg(tempStr,3)[0];
+	  center[1] = IO::return_arg(tempStr,3)[1];
+	  center[2] = IO::return_arg(tempStr,3)[2];
 	  break;
+	case 'd':
+	  tempStr = optarg;
+	  det_size[0] = IO::return_arg(tempStr,3)[0];
+	  det_size[1] = IO::return_arg(tempStr,3)[1];
+	  det_size[2] = IO::return_arg(tempStr,3)[2];
 	case 't':
 	  spillT = std::stod(optarg);
 	  break;
@@ -104,17 +111,10 @@ int main (int argc, char *argv[]) {
       tempStr.clear(); // To be safe
     }
 
-
-  // ----- File exists -----
-  //  if (!is_alive(infile)) {
-  //    std::cout << "\033[31;1m[ERROR]\033[0m File \'" << infile << "\' does not exist." << std::endl;
-  //    return 0;
-  //  }
-
   
   // ================================================================
 
-
+  
   
   // === DATABASE ===================================================
 
@@ -122,12 +122,12 @@ int main (int argc, char *argv[]) {
   DBReader *corsDB = new DBReader(infile.c_str());
 
   //	Setup a detector level to read from 
-  Detector *pdMuon = new Detector(xVals, yVals, EVals);
-  pdMuon->ValidateRange();
+  EDetector *pdMuon = new EDetector(det_size, center);
+  
   
   // ================================================================ 
 
-
+  
 
   // === EVENT LOOPS ================================================ 
   
@@ -137,12 +137,13 @@ int main (int argc, char *argv[]) {
   std::cout << "\033[1;34m[INFO]\033[0m Saving ENUBET cosmics to output file:\n\t"
 	    << outfile << std::endl;
   
-	// Set the spill time for all EHandler objects
+  // Set the spill time for all EHandler objects
   EShower::SetSpillT(spillT);
 
   // Create a handler for the shower
-  EShower showerHandler(corsDB, pdMuon, EShower::H);
+  EShower showerHandler(corsDB, pdMuon, EVals, EShower::H);
   showerHandler.CreateTree();
+  showerHandler.SetBuffer(buffer);
   showerHandler.NShowers();
   std::vector<int> testVec = showerHandler.GetShowers();
   
@@ -162,11 +163,13 @@ int main (int argc, char *argv[]) {
   // ================================================================ 
   
   corsOUT.cd();
+
+  std::cout << "Number of particles: " << particleHandler.GetParticles().size() << std::endl;
   
   // Write everything to the output file 
   showerHandler.GetTree()->Write();
   particleHandler.GetTree()->Write();
-
+  
   corsOUT.Close();
 
   return 0;

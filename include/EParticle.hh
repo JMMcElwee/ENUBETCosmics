@@ -30,7 +30,7 @@ public:
   };
   
   // --- Constructors ---
-  EParticle(DBReader *corsDB, Detector *pdMuon);
+  EParticle(DBReader *corsDB, EDetector *pdMuon);
   
   // --- ROOT Methods ---
   void CreateTree() override;

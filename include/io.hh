@@ -17,15 +17,20 @@
 #include <iomanip>
 #include <sys/stat.h>
 
-// --- Progress --------------
-void status(int evnt, int evntMax);
-// ---------------------------
+namespace IO
+{
 
-// --- Functions -------------
-void help();
-bool is_alive(const std::string &file);
-bool range_valid(double low, double high, const char *name);
-// ---------------------------
+  // --- Progress --------------
+  void status(int evnt, int evntMax);
+  // ---------------------------
+  
+  // --- Functions -------------
+  void help();
+  bool is_alive(const std::string &file);
+  bool range_valid(double low, double high, const char *name);
+  double *return_arg(std::string tempStr, int arr_size);
+  // ---------------------------
 
+}
 
 #endif
