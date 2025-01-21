@@ -29,6 +29,7 @@ private:
   double m_E, m_theta, m_phi, m_t, m_vtx[2];
   double m_ERange[2] {};
   double m_buffer[2] {0, 0};
+  double m_offset = 0.;
   
 public: 
 
@@ -57,7 +58,9 @@ public:
   void Process(int shower);
   void IncrementShower();
   virtual void SetBuffer(double buffer[2]) final;
+  virtual void SetOffset(double offset) final;
   double *Buffer();
+  double Offset();
   
   static void SetSpillT(double t);
   

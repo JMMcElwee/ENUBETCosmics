@@ -106,7 +106,7 @@ void EParticle::Process(int shower, EShower *showerHandler)
 
 	    double testing[3] = {currentParticle.m_vtx[0],
 				 currentParticle.m_vtx[1],
-				 0};
+				 showerHandler->Offset()};
 	    
 	    if ( pdMuon->InVolume(testing,
 				  currentParticle.m_mom) )

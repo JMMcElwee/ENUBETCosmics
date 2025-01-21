@@ -129,6 +129,13 @@ void EShower::SetBuffer(double buffer[2])
 }
 // - - - - - - - - - - - - - - -
 
+// - - - - - - - - - - - - - - -
+void EShower::SetOffset(double offset)
+{
+  m_offset = offset;
+}
+// - - - - - - - - - - - - - - -
+
 //**********************************************************
 
 
@@ -159,6 +166,11 @@ int EShower::ID()
 // - - - - - - - - - - - - - - -
 double *EShower::Buffer()
 { return m_buffer; }
+// - - - - - - - - - - - - - - -
+
+// - - - - - - - - - - - - - - -
+double EShower::Offset()
+{ return m_offset; }
 // - - - - - - - - - - - - - - -
 
 //**********************************************************

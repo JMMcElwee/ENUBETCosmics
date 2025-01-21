@@ -50,8 +50,9 @@ int main (int argc, char *argv[]) {
   double spillT = 2.;
   
   double det_size[3] = {12., 12., 12.};
-  double center[3] = {0., 0., 0.};
-  double buffer[2] = {0., 0.};  
+  double det_center[3] = {0., 0., 0.};
+  double gen_buffer[2] = {0., 0.};
+  double gen_offset = 0.;
   
   int primOverride = -1;
 
@@ -60,7 +61,7 @@ int main (int argc, char *argv[]) {
   // ----- Read Command Line -----
   int opt;
   optind = nReqArg + 1;
-  while ((opt = getopt(argc, argv, ":vhE:b:c:d:t:n:o:")) != -1)
+  while ((opt = getopt(argc, argv, ":vhE:b:c:d:t:n:o:O:")) != -1)
     {
       std::string tempStr;
       switch (opt)
@@ -75,14 +76,14 @@ int main (int argc, char *argv[]) {
 	  break;
 	case 'b':
 	  tempStr = optarg;
-	  buffer[0] = IO::return_arg(tempStr,2)[0];
-	  buffer[1] = IO::return_arg(tempStr,2)[1];
+	  gen_buffer[0] = IO::return_arg(tempStr,2)[0];
+	  gen_buffer[1] = IO::return_arg(tempStr,2)[1];
 	  break;
 	case 'c':
 	  tempStr = optarg;
-	  center[0] = IO::return_arg(tempStr,3)[0];
-	  center[1] = IO::return_arg(tempStr,3)[1];
-	  center[2] = IO::return_arg(tempStr,3)[2];
+	  det_center[0] = IO::return_arg(tempStr,3)[0];
+	  det_center[1] = IO::return_arg(tempStr,3)[1];
+	  det_center[2] = IO::return_arg(tempStr,3)[2];
 	  break;
 	case 'd':
 	  tempStr = optarg;
@@ -94,6 +95,9 @@ int main (int argc, char *argv[]) {
 	  break;
 	case 'n':
 	  primOverride = std::stoi(optarg);
+	  break;
+	case 'O':
+	  gen_offset = std::stod(optarg);
 	  break;
 	case 'o':
 	  outfile = optarg;
@@ -122,7 +126,7 @@ int main (int argc, char *argv[]) {
   DBReader *corsDB = new DBReader(infile.c_str());
 
   //	Setup a detector level to read from 
-  EDetector *pdMuon = new EDetector(det_size, center);
+  EDetector *pdMuon = new EDetector(det_size, det_center);
   
   
   // ================================================================ 
@@ -143,7 +147,8 @@ int main (int argc, char *argv[]) {
   // Create a handler for the shower
   EShower showerHandler(corsDB, pdMuon, EVals, EShower::H);
   showerHandler.CreateTree();
-  showerHandler.SetBuffer(buffer);
+  showerHandler.SetBuffer(gen_buffer);
+  showerHandler.SetOffset(gen_offset);
   showerHandler.NShowers();
   std::vector<int> testVec = showerHandler.GetShowers();
   
