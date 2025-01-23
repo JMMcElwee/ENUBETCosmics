@@ -16,14 +16,23 @@
 //***** CONSTRUCTORS ***************************************
 
 // - - - - - - - - - - - - - - -
-EShower::EShower(DBReader *corsDB, Detector *pdMuon)
+EShower::EShower(DBReader *corsDB, EDetector *pdMuon)
   : corsDB(corsDB), pdMuon(pdMuon)
 {}
 // - - - - - - - - - - - - - - -
 
 // - - - - - - - - - - - - - - -
-EShower::EShower(DBReader *corsDB, Detector *pdMuon, PType primary)
+EShower::EShower(DBReader *corsDB, EDetector *pdMuon, double ERange[2])
   : EShower(corsDB, pdMuon)
+{
+  m_ERange[0] = ERange[0];
+  m_ERange[1] = ERange[1];
+}
+// - - - - - - - - - - - - - - -
+
+// - - - - - - - - - - - - - - -
+EShower::EShower(DBReader *corsDB, EDetector *pdMuon, double ERange[2], PType primary)
+  : EShower(corsDB, pdMuon, ERange)
 {
   m_primary = primary;
 }
@@ -93,8 +102,10 @@ void EShower::Process(int shower)
     m_theta = corsDB->STheta();
     m_phi = corsDB->SPhi();
 
-    m_vtx[0] = gRandom->Uniform(pdMuon->X()[0], pdMuon->X()[1]);
-    m_vtx[1] = gRandom->Uniform(pdMuon->Y()[0], pdMuon->Y()[1]);
+    m_vtx[0] = gRandom->Uniform(pdMuon->X()[0] - m_buffer[0],
+				pdMuon->X()[1] + m_buffer[1]);
+    m_vtx[1] = gRandom->Uniform(pdMuon->Y()[0] - m_buffer[1],
+				pdMuon->Y()[1] + m_buffer[1]);
 
     m_t = gRandom->Uniform(0, m_tspill);
 
@@ -107,6 +118,21 @@ void EShower::Process(int shower)
 void EShower::IncrementShower()
 {
     m_id++;
+}
+// - - - - - - - - - - - - - - -
+
+// - - - - - - - - - - - - - - -
+void EShower::SetBuffer(double buffer[2])
+{
+  for (int i = 0; i < 2; i++)
+    m_buffer[i] = buffer[i];
+}
+// - - - - - - - - - - - - - - -
+
+// - - - - - - - - - - - - - - -
+void EShower::SetOffset(double offset)
+{
+  m_offset = offset;
 }
 // - - - - - - - - - - - - - - -
 
@@ -137,6 +163,15 @@ int EShower::ID()
 { return m_id; }
 // - - - - - - - - - - - - - - -
 
+// - - - - - - - - - - - - - - -
+double *EShower::Buffer()
+{ return m_buffer; }
+// - - - - - - - - - - - - - - -
+
+// - - - - - - - - - - - - - - -
+double EShower::Offset()
+{ return m_offset; }
+// - - - - - - - - - - - - - - -
 
 //**********************************************************
 
@@ -158,15 +193,20 @@ int EShower::NShowers()
 
   if (m_nshowers < 0) {
 
+    double genSurf = (pdMuon->XSize() + 2*m_buffer[0]) *
+                     (pdMuon->YSize() + 2*m_buffer[1]);
+
     // Output information for user to determine if detector is correct
     std::cout << "\n\033[1m*********** COSMIC GEN ************\n\033[0m"
 	      << "Spill time: \t" << m_tspill << " s\n"
 	      << "Constant: \t" << m_primary << "\n"
-	      << "Energy Range: \t[" << pdMuon->E()[0] << "," << pdMuon->E()[1] << "]\n"
+	      << "Energy Range: \t[" << m_ERange[0] << "," << m_ERange[1] << "] GeV \n"
+	      << "Buffer Zone: \t[" << m_buffer[0] << "," << m_buffer[1] << "] m\n"
+	      << "Gen. Surface: \t" << genSurf << " m2\n"
 	      << "\033[1m***********************************\n\033[0m" << std::endl;
     
-    double nshowers = round(2 * M_PI * pdMuon->SA() * m_tspill * m_primary *
-			    (pow(pdMuon->E()[0],-1.7) - pow(pdMuon->E()[1],-1.7))/1.7);
+    double nshowers = round(2 * M_PI * genSurf * m_tspill * m_primary *
+			    (pow(m_ERange[0],-1.7) - pow(m_ERange[1],-1.7))/1.7);
     
     
     std::cout << "\033[34;1m[INFO]\033[0m Generating " << nshowers
@@ -175,7 +215,6 @@ int EShower::NShowers()
     m_nshowers = nshowers;
   }
 
-  std::cout << "This is the value " << m_nshowers << std::endl;
   return m_nshowers;
 }
 // - - - - - - - - - - - - - - -
@@ -206,7 +245,7 @@ std::vector<int> EShower::GetShowers()
       shower_energy = corsDB->SE();
 
       if ((std::find(m_primaries.begin(),m_primaries.end(),rnd_shower)
-           == m_primaries.end()) && shower_energy < pdMuon->E()[1] && shower_energy > pdMuon->E()[0])
+           == m_primaries.end()) && shower_energy < m_ERange[1] && shower_energy > m_ERange[0])
         m_primaries.push_back(rnd_shower);
       else evnt--;
       

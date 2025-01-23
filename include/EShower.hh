@@ -17,7 +17,7 @@
 #include "TTree.h"
 
 #include "DBReader.hh"
-#include "detector.hh"
+#include "EDetector.hh"
 #include "EShower.hh"
 
 class EShower
@@ -27,7 +27,9 @@ private:
   
   // Shower variables to output to the TTree
   double m_E, m_theta, m_phi, m_t, m_vtx[2];
-
+  double m_ERange[2] {};
+  double m_buffer[2] {0, 0};
+  double m_offset = 0.;
   
 public: 
 
@@ -55,7 +57,11 @@ public:
   // --- Data Handling ---
   void Process(int shower);
   void IncrementShower();
-
+  virtual void SetBuffer(double buffer[2]) final;
+  virtual void SetOffset(double offset) final;
+  double *Buffer();
+  double Offset();
+  
   static void SetSpillT(double t);
   
   // --- Access Functions ---
@@ -64,8 +70,9 @@ public:
   virtual double *Vtx() final;
   
   // --- Constructors ---
-  EShower(DBReader *corsDB, Detector *pdMuon);
-  EShower(DBReader *corsDB, Detector *pdMuon, PType primary);
+  EShower(DBReader *corsDB, EDetector *pdMuon);
+  EShower(DBReader *corsDB, EDetector *pdMuon, double ERange[2]);
+  EShower(DBReader *corsDB, EDetector *pdMuon, double ERange[2], PType primary);
   virtual ~EShower();
 
   
@@ -73,7 +80,7 @@ protected:
 
   // --- Members ---
   DBReader *corsDB {nullptr};
-  Detector *pdMuon {nullptr};
+  EDetector *pdMuon {nullptr};
   TTree *m_tree {nullptr};
 
   bool m_saveAsROOT = false;
