@@ -44,7 +44,8 @@ DBReader::DBReader(const char *dbfile) : m_dbfile(dbfile, "READ")
   m_particleTree->SetBranchAddress("x",&m_pX);
   m_particleTree->SetBranchAddress("y",&m_pY);
   m_particleTree->SetBranchAddress("t",&m_pT);
-  
+
+  m_filename = dbfile;
 }
 // - - - - - - - - - - - - - -
 
@@ -153,6 +154,11 @@ double DBReader::Y()
 // - - - - - - - - - - - - - -
 double DBReader::T()
 { return m_pT; }
+// - - - - - - - - - - - - - -
+
+// - - - - - - - - - - - - - -
+std::string DBReader::File()
+{ return m_filename; }
 // - - - - - - - - - - - - - -
 
 // ********************************************************************

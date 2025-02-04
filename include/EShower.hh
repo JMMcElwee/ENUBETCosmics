@@ -12,6 +12,7 @@
 #define ESHOWER_HH
 
 #include <iostream>
+#include <map>
 
 #include "TRandom.h"
 #include "TTree.h"
@@ -19,6 +20,8 @@
 #include "DBReader.hh"
 #include "EDetector.hh"
 #include "EShower.hh"
+
+using namespace std;
 
 class EShower
 {
@@ -34,28 +37,28 @@ private:
 public: 
 
   // --- CMC Model Params ---
-  enum PType {
-    H =	17200,
-    He = 9200,
-    C =	6200,
-    N =	6200,
-    O = 6200,
-    Mg = 9200,
-    Fe = 6200,
-    Complete = 0
+  const map<string, int> PConst = {
+    {"H",  17200},
+    {"He", 9200},
+    {"C",  6200},
+    {"N",  6200},
+    {"O",  6200},
+    {"Mg", 9200},
+    {"Fe", 6200}
   };
-  int m_nshowers {-1};
-  std::vector<int> m_primaries {};  
-  int NShowers();
-  std::vector<int> GetShowers(); 
-
+  vector<int> m_nshowers {};
+  vector<vector<int>> m_primaries {};  
+  void NShowers();
+  void GetShowers(); 
+  vector<int> GetShowers(string pType);
+  vector<int> GetShowers(int vec);
   
   // --- ROOT Methods ---
   TTree *GetTree();
   virtual void CreateTree();
   
   // --- Data Handling ---
-  void Process(int shower);
+  void Process(int shower, int vec);
   void IncrementShower();
   virtual void SetBuffer(double buffer[2]) final;
   virtual void SetOffset(double offset) final;
@@ -72,14 +75,16 @@ public:
   // --- Constructors ---
   EShower(DBReader *corsDB, EDetector *pdMuon);
   EShower(DBReader *corsDB, EDetector *pdMuon, double ERange[2]);
-  EShower(DBReader *corsDB, EDetector *pdMuon, double ERange[2], PType primary);
+  EShower(DBReader *corsDB, EDetector *pdMuon, double ERange[2], std::string primary);
+  EShower(string directory, EDetector *pdMuon, vector<string> primaries);
+  EShower(string directory, EDetector *pdMuon, double ERange[2], vector<string> primaries);
   virtual ~EShower();
 
   
 protected:
 
   // --- Members ---
-  DBReader *corsDB {nullptr};
+  //  DBReader *corsDB {nullptr};
   EDetector *pdMuon {nullptr};
   TTree *m_tree {nullptr};
 
@@ -91,8 +96,8 @@ protected:
   static double m_tspill;
 
   // --- CMC Model ---
-  PType m_primary = PType::H;
-  
+  vector<string> m_pTypeVec = { "H" };
+  vector<DBReader*> m_dbVec = { nullptr };
 };
 
 #endif // Header guard
