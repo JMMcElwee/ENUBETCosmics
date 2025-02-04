@@ -16,7 +16,6 @@
 #include <map>
 #include <vector>
 
-//#include "EHandler.hh"
 #include "EShower.hh"
 
 class EParticle : public EShower
@@ -31,14 +30,15 @@ public:
   
   // --- Constructors ---
   EParticle(DBReader *corsDB, EDetector *pdMuon);
+  EParticle(std::string directory, EDetector *pdMuon, std::vector<std::string> primaries);
   
   // --- ROOT Methods ---
   void CreateTree() override;
   
   // --- Data Handling ---
-  void Process(int shower, EShower *showerHandler);
+  void Process(int shower, EShower *showerHandler, int pType);
   const std::vector<EParticle::Particle> &GetParticles(); // This should change to an iterator
-
+  void ResetParticle();
   
 private:
   

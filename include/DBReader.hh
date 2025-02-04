@@ -37,7 +37,9 @@ protected:
   TFile m_dbfile {};
   TTree *m_showerTree {nullptr};
   TTree *m_particleTree {nullptr};
+  std::string m_filename {};
 
+  
   // Shower variables
   int m_sId {};
   double m_sE {};
@@ -78,6 +80,7 @@ public:
   double X();
   double Y();
   double T();
+  std::string File();
 
   // --- ROOT Functions ---
   void GetShower(int evnt);

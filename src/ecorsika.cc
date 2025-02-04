@@ -57,11 +57,12 @@ int main (int argc, char *argv[]) {
   int primOverride = -1;
 
   std::string outfile = "enubet_cosmics.root";
+  std::string directory = "/Users/jmcelwee/Documents/NDTF/cosmics/database";
   
   // ----- Read Command Line -----
   int opt;
   optind = nReqArg + 1;
-  while ((opt = getopt(argc, argv, ":vhE:b:c:d:t:n:o:O:")) != -1)
+  while ((opt = getopt(argc, argv, ":vhE:b:c:d:t:n:o:O:D:")) != -1)
     {
       std::string tempStr;
       switch (opt)
@@ -73,6 +74,9 @@ int main (int argc, char *argv[]) {
 	  tempStr = optarg;
 	  EVals[0] = IO::return_arg(tempStr,2)[0];
 	  EVals[1] = IO::return_arg(tempStr,2)[1];
+	  break;
+	case 'D':
+	  directory = optarg;
 	  break;
 	case 'b':
 	  tempStr = optarg;
@@ -123,7 +127,7 @@ int main (int argc, char *argv[]) {
   // === DATABASE ===================================================
 
   // Read the database using the reader class 
-  DBReader *corsDB = new DBReader(infile.c_str());
+  //  DBReader *corsDB = new DBReader(infile.c_str());
 
   //	Setup a detector level to read from 
   EDetector *pdMuon = new EDetector(det_size, det_center);
@@ -144,36 +148,48 @@ int main (int argc, char *argv[]) {
   // Set the spill time for all EHandler objects
   EShower::SetSpillT(spillT);
 
+  //  std::vector<std::string> primaries = {"H", "He", "C", "O"};
+  std::vector<std::string> primaries = {"H", "He", "C"};
+  
   // Create a handler for the shower
-  EShower showerHandler(corsDB, pdMuon, EVals, EShower::H);
+  //  EShower showerHandler(corsDB, pdMuon, EVals, EShower::H);
+  EShower showerHandler(directory, pdMuon, EVals, primaries);
   showerHandler.CreateTree();
   showerHandler.SetBuffer(gen_buffer);
   showerHandler.SetOffset(gen_offset);
   showerHandler.NShowers();
-  std::vector<int> testVec = showerHandler.GetShowers();
-  
+  //  std::vector<int> testVec = showerHandler.GetShowers();
   
   // Create a handler for the particle 
-  EParticle particleHandler(corsDB, pdMuon);
+  //  EParticle particleHandler(corsDB, pdMuon);
+  EParticle particleHandler(directory, pdMuon, primaries);
   particleHandler.CreateTree();
-
   
-  // Loop through the showers selected and process them 
-  for ( int shower : showerHandler.GetShowers() ) {
+  for (int i=0; i < primaries.size(); i++) {
 
-    showerHandler.Process(shower);
-    particleHandler.Process(shower, &showerHandler);
- 
+    std::cout << "Generating primary... " << primaries.at(i) << std::endl;
+    
+    // Loop through the showers selected and process them 
+    for ( int shower : showerHandler.GetShowers(i) ) {
+    
+      showerHandler.Process(shower, i);
+      particleHandler.Process(shower, &showerHandler, i);
+      
+    }
+
+    particleHandler.ResetParticle();
+    
   }
   // ================================================================ 
   
   corsOUT.cd();
-
+  
   std::cout << "Number of particles: " << particleHandler.GetParticles().size() << std::endl;
   
   // Write everything to the output file 
   showerHandler.GetTree()->Write();
   particleHandler.GetTree()->Write();
+
   
   corsOUT.Close();
 

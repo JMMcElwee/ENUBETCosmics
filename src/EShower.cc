@@ -17,8 +17,10 @@
 
 // - - - - - - - - - - - - - - -
 EShower::EShower(DBReader *corsDB, EDetector *pdMuon)
-  : corsDB(corsDB), pdMuon(pdMuon)
-{}
+  : pdMuon(pdMuon)
+{
+  m_dbVec.push_back(corsDB);
+}
 // - - - - - - - - - - - - - - -
 
 // - - - - - - - - - - - - - - -
@@ -31,10 +33,37 @@ EShower::EShower(DBReader *corsDB, EDetector *pdMuon, double ERange[2])
 // - - - - - - - - - - - - - - -
 
 // - - - - - - - - - - - - - - -
-EShower::EShower(DBReader *corsDB, EDetector *pdMuon, double ERange[2], PType primary)
+EShower::EShower(DBReader *corsDB, EDetector *pdMuon, double ERange[2], std::string primary)
   : EShower(corsDB, pdMuon, ERange)
 {
-  m_primary = primary;
+  m_pTypeVec.at(0) = primary;
+}
+// - - - - - - - - - - - - - - -
+
+// - - - - - - - - - - - - - - -
+EShower::EShower(std::string directory, EDetector *pdMuon,
+		 vector<string> primaries)
+  : pdMuon(pdMuon)
+{ 
+  m_pTypeVec = primaries;
+  m_dbVec.resize(primaries.size());
+  
+  for (int i=0; i < primaries.size(); i++) {
+    m_dbVec.at(i) = new DBReader( (directory + "/cosmic_db_" + m_pTypeVec.at(i)
+				   + "_80_1E8_DPM_urmqd_curved.root").c_str() );
+    m_pTypeVec.at(i) = primaries.at(i);
+  }
+
+}
+// - - - - - - - - - - - - - - -
+
+// - - - - - - - - - - - - - - -
+EShower::EShower(std::string directory, EDetector *pdMuon,
+		 double ERange[2], vector<string> primaries)
+  : EShower(directory, pdMuon, primaries)
+{ 
+  for (int i=0; i < 2; i++)
+    m_ERange[i] = ERange[i];
 }
 // - - - - - - - - - - - - - - -
 
@@ -93,23 +122,27 @@ void EShower::CreateTree()
 //***** DATA HANDLING **************************************
 
 // - - - - - - - - - - - - - - -
-void EShower::Process(int shower)
+void EShower::Process(int shower, int vec)
 {
-    corsDB->GetShower(shower);
 
-    IncrementShower();
-    m_E = corsDB->SE();
-    m_theta = corsDB->STheta();
-    m_phi = corsDB->SPhi();
-
-    m_vtx[0] = gRandom->Uniform(pdMuon->X()[0] - m_buffer[0],
-				pdMuon->X()[1] + m_buffer[1]);
-    m_vtx[1] = gRandom->Uniform(pdMuon->Y()[0] - m_buffer[1],
-				pdMuon->Y()[1] + m_buffer[1]);
-
-    m_t = gRandom->Uniform(0, m_tspill);
-
-    if (m_saveAsROOT) m_tree->Fill();
+  DBReader *corsDB = m_dbVec.at(vec);
+  
+  corsDB->GetShower(shower);
+  
+  IncrementShower();
+  m_E = corsDB->SE();
+  m_theta = corsDB->STheta();
+  m_phi = corsDB->SPhi();
+  
+  m_vtx[0] = gRandom->Uniform(pdMuon->X()[0] - m_buffer[0],
+			      pdMuon->X()[1] + m_buffer[1]);
+  m_vtx[1] = gRandom->Uniform(pdMuon->Y()[0] - m_buffer[1],
+			      pdMuon->Y()[1] + m_buffer[1]);
+  
+  m_t = gRandom->Uniform(0, m_tspill);
+  
+  if (m_saveAsROOT) m_tree->Fill();
+    
 
 }
 // - - - - - - - - - - - - - - -
@@ -188,36 +221,41 @@ double EShower::Offset()
    kp is the shower constant, which can change based on the primary
    species.
  */
-int EShower::NShowers()
+void EShower::NShowers()
 {
+  
+  m_nshowers.reserve( m_pTypeVec.size() );
 
-  if (m_nshowers < 0) {
+  if (m_nshowers.empty()) {
+    for (int i=0; i < m_pTypeVec.size(); i++) {
+      
+      double genSurf = (pdMuon->XSize() + 2*m_buffer[0]) *
+	(pdMuon->YSize() + 2*m_buffer[1]);
+      
+      // Output information for user to determine if detector is correct
+      std::cout << "\n\033[1m*********** COSMIC GEN ************\n\033[0m"
+		<< "Spill time: \t" << m_tspill << " s\n"
+		<< "Constant: \t" << PConst.at(m_pTypeVec.at(i)) << "\n"
+		<< "Energy Range: \t[" << m_ERange[0] << "," << m_ERange[1] << "] GeV \n"
+		<< "Buffer Zone: \t[" << m_buffer[0] << "," << m_buffer[1] << "] m\n"
+		<< "Gen. Surface: \t" << genSurf << " m2\n"
+		<< "\033[1m***********************************\n\033[0m" << std::endl;
+      
+      double nshowers = round(2 * M_PI * genSurf * m_tspill * PConst.at(m_pTypeVec.at(i)) *
+			      (pow(m_ERange[0],-1.7) - pow(m_ERange[1],-1.7))/1.7);
+      
+      
+      std::cout << "\033[34;1m[INFO]\033[0m Generating " << nshowers
+		<< " primary cosmics." << std::endl;
+      
+      m_nshowers.push_back(nshowers);
+    }
 
-    double genSurf = (pdMuon->XSize() + 2*m_buffer[0]) *
-                     (pdMuon->YSize() + 2*m_buffer[1]);
-
-    // Output information for user to determine if detector is correct
-    std::cout << "\n\033[1m*********** COSMIC GEN ************\n\033[0m"
-	      << "Spill time: \t" << m_tspill << " s\n"
-	      << "Constant: \t" << m_primary << "\n"
-	      << "Energy Range: \t[" << m_ERange[0] << "," << m_ERange[1] << "] GeV \n"
-	      << "Buffer Zone: \t[" << m_buffer[0] << "," << m_buffer[1] << "] m\n"
-	      << "Gen. Surface: \t" << genSurf << " m2\n"
-	      << "\033[1m***********************************\n\033[0m" << std::endl;
-    
-    double nshowers = round(2 * M_PI * genSurf * m_tspill * m_primary *
-			    (pow(m_ERange[0],-1.7) - pow(m_ERange[1],-1.7))/1.7);
-    
-    
-    std::cout << "\033[34;1m[INFO]\033[0m Generating " << nshowers
-	      << " primary cosmics." << std::endl;
-    
-    m_nshowers = nshowers;
-  }
-
-  return m_nshowers;
+  } 
+  //    return m_nshowers;
 }
 // - - - - - - - - - - - - - - -
+
 
 // - - - - - - - - - - - - - - -
 
@@ -227,39 +265,67 @@ int EShower::NShowers()
   function, and can only be accessed by the main function by
   recalculating it.
 */
-std::vector<int> EShower::GetShowers()
+void EShower::GetShowers()
 {
 
-  if ( m_primaries.empty() ){
-    
-    m_primaries.reserve(m_nshowers+1);
+  m_primaries.resize( m_pTypeVec.size() );
+  
+  for (int i=0; i < m_pTypeVec.size(); i++) {
 
-    std::cout << "\033[34;1m[INFO]\033[0m Loading primaries into vector" << std::endl;
+    m_primaries.at(i).reserve(m_nshowers.at(i));
+    DBReader *corsDB = m_dbVec.at(i);
+    
+    
+    std::cout << "\033[34;1m[INFO]\033[0m Loading " << m_pTypeVec.at(i) 
+	      << " primaries into vector from:\n\t"
+	      << corsDB->File() << std::endl;
     
     int rnd_shower;
     double shower_energy;
-    for (int evnt = 1; evnt <= m_nshowers; evnt++){
+    for (int evnt = 0; evnt < m_nshowers.at(i); evnt++){
 
       rnd_shower = gRandom->Integer(corsDB->GetNShowers());
       corsDB->GetShower(rnd_shower);
       shower_energy = corsDB->SE();
-
-      if ((std::find(m_primaries.begin(),m_primaries.end(),rnd_shower)
-           == m_primaries.end()) && shower_energy < m_ERange[1] && shower_energy > m_ERange[0])
-        m_primaries.push_back(rnd_shower);
+      
+      if ((std::find(m_primaries.at(i).begin(),m_primaries.at(i).end(),rnd_shower)
+	   == m_primaries.at(i).end()) && shower_energy < m_ERange[1] && shower_energy > m_ERange[0])
+	m_primaries.at(i).push_back(rnd_shower);
       else evnt--;
       
     }
-
-    sort(m_primaries.begin(), m_primaries.end());
-
+    
+    sort(m_primaries.at(i).begin(), m_primaries.at(i).end());
+    
   }
-
-  return m_primaries;
   
 }
 // - - - - - - - - - - - - - - -
 
+// - - - - - - - - - - - - - - -
+vector<int> EShower::GetShowers(string compType)
+{
+  if ( m_primaries.empty() )
+    GetShowers();
+
+  int count = 0;
+  for (auto pType : m_pTypeVec)
+    if (pType != compType)
+      count++;
+
+  return m_primaries.at(count);
+}
+// - - - - - - - - - - - - - - -
+
+// - - - - - - - - - - - - - - -
+vector<int> EShower::GetShowers(int vec)
+{
+  if ( m_primaries.empty() )
+    GetShowers();
+
+  return m_primaries.at(vec);
+}
+// - - - - - - - - - - - - - - -
 
 //**********************************************************
 
