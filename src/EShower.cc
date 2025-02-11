@@ -139,7 +139,7 @@ void EShower::Process(int shower, int vec)
   m_vtx[1] = gRandom->Uniform(pdMuon->Y()[0] - m_buffer[1],
 			      pdMuon->Y()[1] + m_buffer[1]);
   
-  m_t = gRandom->Uniform(0, m_tspill);
+  m_t = gRandom->Uniform(0, m_tspill*1.E9);
   
   if (m_saveAsROOT) m_tree->Fill();
     

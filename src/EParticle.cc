@@ -105,12 +105,12 @@ void EParticle::Process(int shower, EShower *showerHandler, int pType)
       }
 
       if ((std::abs(shift[0]) > 0 || std::abs(shift[1]) > 0) && !showerTiming.count(shift)) {
-	showerTiming[shift] = gRandom->Uniform(0, m_tspill);
+	showerTiming[shift] = gRandom->Uniform(0, m_tspill*1E9);
 	showerHandler->IncrementShower();
 	showerIDMap[shift] = showerHandler->ID();
       }
       
-      currentParticle.m_t = corsDB->T() / 1E9 + showerTiming[shift];
+      currentParticle.m_t = corsDB->T() + showerTiming[shift];
       m_id = showerIDMap[shift];
       
       double testing[3] = {currentParticle.m_vtx[0],
