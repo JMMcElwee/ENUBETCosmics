@@ -59,6 +59,7 @@ void EParticle::CreateTree()
 void EParticle::Process(int shower, EShower *showerHandler, int pType)
 {
 
+  gRandom->SetSeed(0);
   
   std::map<std::vector<int>, double> showerTiming;
   std::map<std::vector<int>, int> showerIDMap;

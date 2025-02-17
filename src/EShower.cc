@@ -124,6 +124,7 @@ void EShower::CreateTree()
 // - - - - - - - - - - - - - - -
 void EShower::Process(int shower, int vec)
 {
+  gRandom->SetSeed(0);
 
   DBReader *corsDB = m_dbVec.at(vec);
   
@@ -268,6 +269,8 @@ void EShower::NShowers()
 void EShower::GetShowers()
 {
 
+  gRandom->SetSeed(0);
+  
   m_primaries.resize( m_pTypeVec.size() );
   
   for (int i=0; i < m_pTypeVec.size(); i++) {
